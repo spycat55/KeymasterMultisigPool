@@ -25,3 +25,17 @@ export {
   spendTXDualFeePoolClientSign,
   buildDualFeePoolSpendTX,
 } from './2client_spend_tx';
+
+export {
+  spendTXServerSign,
+} from './3server_sign';
+
+export {
+  loadTx as loadDualFeePoolTx,
+  clientDualFeePoolSpendTXUpdateSign,
+  FINAL_LOCKTIME,
+} from './4client_spend_tx_update';
+
+export {
+  serverDualFeePoolSpendTXUpdateSign,
+} from './5server_sign_update';
