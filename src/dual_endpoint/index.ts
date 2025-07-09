@@ -9,8 +9,8 @@
  */
 
 
-// 重新导出类型定义
-export type {
+// 重新导出函数和类型定义
+export {
   createDualMultisigScript,
   createP2PKHScript,
   buildDualFeePoolBaseTx,

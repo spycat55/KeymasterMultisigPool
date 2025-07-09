@@ -3,7 +3,7 @@ import { PrivateKey, PublicKey } from '@bsv/sdk/primitives';
 import Transaction from '@bsv/sdk/transaction/Transaction';
 import TransactionSignature from '@bsv/sdk/primitives/TransactionSignature';
 // import { BaseChain } from '../tx/BaseChain';
-import type { UTXO, BuildDualFeePoolBaseTxResponse } from '../../../services/chain-api/types';
+import type { UTXO, BuildDualFeePoolBaseTxResponse } from '../types';
 // import { TripleEndpointPoolScript } from './triple_endpoint_pool_0script';
 // import OP from '@bsv/sdk/script/OP';
 // import LockingScript from '@bsv/sdk/script/LockingScript';
