@@ -53,8 +53,8 @@ interface DualSpendTxResponse {
 
 		// 添加两个假签名
 		for (let i = 0; i < 2; i++) {
-			// 假签名：72字节的虚拟签名 + 1字节sighash标志
-			const fakeSignature = new Array(72).fill(0x30).concat([TransactionSignature.SIGHASH_ALL | TransactionSignature.SIGHASH_FORKID]);
+			// 假签名：72字节的虚拟签名 + 1字节sighash标志（与Go保持一致，使用0x00）
+			const fakeSignature = new Array(72).fill(0x00).concat([0x00]);
 			script.writeBin(fakeSignature);
 		}
 

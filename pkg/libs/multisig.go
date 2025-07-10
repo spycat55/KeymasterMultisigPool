@@ -161,8 +161,8 @@ func FakeSign(m uint32) (*script.Script, error) {
 
 	// 创建假签名数据
 	for i := 0; i < int(m); i++ {
-		// 假签名数据：使用71字节的空数据模拟签名（最大DER签名长度）+ 1字节的空SigHashFlag
-		fakeSigBuf := make([]byte, 71)
+		// 假签名数据：使用72字节的空数据模拟签名（最大DER签名长度）+ 1字节的空SigHashFlag
+		fakeSigBuf := make([]byte, 72)
 		// 添加一个空的SigHashFlag字节
 		fakeSigBuf = append(fakeSigBuf, uint8(0))
 

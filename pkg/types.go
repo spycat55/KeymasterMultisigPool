@@ -1,7 +1,7 @@
 package pkg
 
 type UTXO struct {
-	TxID  string `json:"tx_id"`
+	TxID  string `json:"txid"`
 	Vout  uint32 `json:"vout"`
-	Value uint64 `json:"value"`
+	Value uint64 `json:"satoshis"`
 }

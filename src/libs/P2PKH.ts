@@ -12,9 +12,11 @@ import UnlockingScript from '@bsv/sdk/script/UnlockingScript'
 import Transaction from '@bsv/sdk/transaction/Transaction'
 import PrivateKey from '@bsv/sdk/primitives/PrivateKey'
 import TransactionSignature from '@bsv/sdk/primitives/TransactionSignature'
-import { sha256 } from '@bsv/sdk/primitives/Hash'
+import { hash256 } from '@bsv/sdk/primitives/Hash'
 import Script from '@bsv/sdk/script/Script'
 import PublicKey from '@bsv/sdk/primitives/PublicKey'
+import * as ECDSA from '@bsv/sdk/primitives/ECDSA'
+import BigNumber from '@bsv/sdk/primitives/BigNumber'
 
 function verifyTruthy<T>(v: T | undefined): T {
   if (v == null) throw new Error('must have value')
@@ -118,7 +120,8 @@ export default class P2PKH implements ScriptTemplate {
           scope: signatureScope
         })
 
-        const rawSignature = privateKey.sign(sha256(preimage))
+        const msgHash = hash256(preimage);
+        const rawSignature = ECDSA.sign(new BigNumber(msgHash, 16), privateKey, true);
         const sig = new TransactionSignature(
           rawSignature.r,
           rawSignature.s,

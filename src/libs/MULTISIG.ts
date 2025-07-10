@@ -3,7 +3,9 @@ import Script from '@bsv/sdk/script/Script';
 import Transaction from '@bsv/sdk/transaction/Transaction';
 import OP from '@bsv/sdk/script/OP';
 // 引入需要的工具类
-import { hash256, sha256 } from '@bsv/sdk/primitives/Hash';
+import { hash256 } from '@bsv/sdk/primitives/Hash';
+import * as ECDSA from '@bsv/sdk/primitives/ECDSA';
+import BigNumber from '@bsv/sdk/primitives/BigNumber';
 import type ScriptChunk from '@bsv/sdk/script/ScriptChunk';
 import type ScriptTemplate from '@bsv/sdk/script/ScriptTemplate';
 import type ScriptTemplateUnlock from '@bsv/sdk/script/ScriptTemplateUnlock';
@@ -205,7 +207,8 @@ export default class MultiSig implements ScriptTemplate {
       });
       
       // 对 sighashData 进行双重哈希 (Sha256d)，然后签名
-      const sig = privateKeys[i].sign(hash256(sighashData));
+      const hashBuf = hash256(sighashData);
+      const sig = ECDSA.sign(new BigNumber(hashBuf, 16), privateKeys[i], true);
       
       // 添加带有 SIGHASH 类型的签名
       const signature = Buffer.concat([
@@ -282,9 +285,8 @@ export default class MultiSig implements ScriptTemplate {
     
     // console.log('=====> sighashData:', toHex(sighashData));
     // 对 sighashData 进行双重哈希 (Sha256d)，然后签名
-    const sighashDataHash256 = sha256(sighashData);
-    // // console.log('=====> sighashDataHash256:', toHex(sighashDataHash256));
-    const sig = privateKey.sign(sighashDataHash256);
+    const hashBuf2 = hash256(sighashData);
+    const sig = ECDSA.sign(new BigNumber(hashBuf2, 16), privateKey, true);
     // console.log('=====> public key:', privateKey.toPublicKey().toDER("hex"));
     
     // 返回带有 SIGHASH 类型的签名
@@ -313,10 +315,10 @@ export default class MultiSig implements ScriptTemplate {
     const script = new Script([]);
     script.writeOpCode(OP.OP_0);
     
-    // 添加假签名（71字节每个 + 1字节 SIGHASH）
+    // 添加假签名（72字节每个 + 1字节 SIGHASH）
     for (let i = 0; i < m; i++) {
-      // 假签名数据：使用71字节的空数据模拟签名（最大DER签名长度）+ 1字节的空SigHashFlag
-      const fakeSig = Buffer.alloc(71);
+      // 假签名数据：使用72字节的空数据模拟签名（最大DER签名长度）+ 1字节的空SigHashFlag
+      const fakeSig = Buffer.alloc(72);
       const fakeSigWithType = Buffer.concat([fakeSig, Buffer.from([0])]);
       script.writeBin([...new Uint8Array(fakeSigWithType)]);
     }

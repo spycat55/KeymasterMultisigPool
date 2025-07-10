@@ -19,4 +19,8 @@ else
   echo "package.json not found; skipping TS tests" && exit 1
 fi
 
-echo "All dual_endpoint tests PASSED"
+echo "[3/3] Cross-language structural validation"
+cd tests/dual_endpoint
+node structural_comparison.js
+
+echo "All dual_endpoint tests and cross-language validation PASSED"

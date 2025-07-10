@@ -2,6 +2,9 @@ import { PrivateKey, PublicKey } from '@bsv/sdk/primitives';
 import Script from '@bsv/sdk/script/Script';
 import Transaction from '@bsv/sdk/transaction/Transaction';
 import TransactionSignature from '@bsv/sdk/primitives/TransactionSignature';
+import { hash256 } from '@bsv/sdk/primitives/Hash';
+import * as ECDSA from '@bsv/sdk/primitives/ECDSA';
+import BigNumber from '@bsv/sdk/primitives/BigNumber';
 // import { BaseChain } from '../tx/BaseChain';
 import type { UTXO, BuildDualFeePoolBaseTxResponse } from '../types';
 // import { API } from '../2api/api';
@@ -194,8 +197,9 @@ import UnlockingScript from '@bsv/sdk/script/UnlockingScript';
 				scope: TransactionSignature.SIGHASH_ALL | TransactionSignature.SIGHASH_FORKID
 			});
 
-			// 客户端签名
-			const signature = clientPrivateKey.sign(sighashData);
+			// 客户端签名（双SHA256后，避免再次哈希）
+			const msgHash = hash256(sighashData);
+			const signature = ECDSA.sign(new BigNumber(msgHash, 16), clientPrivateKey, true);
 
 			// 构造 P2PKH 解锁脚本
 			const signatureDER = signature.toDER() as number[];
@@ -252,7 +256,8 @@ import UnlockingScript from '@bsv/sdk/script/UnlockingScript';
 			});
 
 			// 重新签名
-			const signature = clientPrivateKey.sign(sighashData);
+			const msgHash2 = hash256(sighashData);
+			const signature = ECDSA.sign(new BigNumber(msgHash2, 16), clientPrivateKey, true);
 
 			// 构造 P2PKH 解锁脚本
 			const signatureDER = signature.toDER() as number[];

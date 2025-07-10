@@ -126,12 +126,18 @@ func BuildDualFeePoolBaseTx(
 	if fee == 0 {
 		fee = 1
 	}
+
 	// fmt.Printf("fee: %d, txSize: %d, feeRate: %f\n", fee, txSize, c.feeRate)
 	// c.Logger.Debug("fee", zap.Int64("fee", int64(fee)), zap.Int64("txSize", int64(txSize)), zap.Float64("feeRate", c.feeRate))
 
 	// if totalValue < serverValue+fee {
 	// 	return nil, fmt.Errorf("not enough balance, need %d, have %d", serverValue+fee, totalValue)
 	// }
+
+	// 检查是否有足够的余额支付手续费
+	if totalValue < fee {
+		return nil, fmt.Errorf("not enough balance for fee: need %d, have %d", fee, totalValue)
+	}
 
 	// 更新找零输出
 	transactionData.Outputs[0].Satoshis = totalValue - fee
@@ -145,9 +151,11 @@ func BuildDualFeePoolBaseTx(
 		transactionData.Inputs[i].UnlockingScript = unlockingScript
 	}
 
+	finalAmount := totalValue - fee
+
 	return &BuildStep1Response{
 		Tx:     transactionData,
-		Amount: totalValue - fee,
+		Amount: finalAmount,
 		Index:  0,
 	}, nil
 }
