@@ -1,5 +1,4 @@
 # Dependencies
-node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -108,4 +107,7 @@ public
 # Temporary folders
 .tmp/
 .temp/
-# references/
+
+# 临时的，不要提交，正确应该屏蔽
+references/
+node_modules/

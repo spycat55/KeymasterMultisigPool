@@ -2,6 +2,7 @@ package libs
 
 import (
 	"errors"
+	"fmt"
 
 	ec "github.com/bsv-blockchain/go-sdk/primitives/ec"
 	script "github.com/bsv-blockchain/go-sdk/script"
@@ -80,6 +81,7 @@ func (ms *MultiSig) Sign(tx *transaction.Transaction, inputIndex uint32) (*scrip
 	}
 
 	sh, err := tx.CalcInputSignatureHash(inputIndex, *ms.SigHashFlag)
+	fmt.Printf("Go sighash: %x\n", sh)
 	if err != nil {
 		return nil, err
 	}
@@ -116,6 +118,7 @@ func (ms *MultiSig) SignOne(tx *transaction.Transaction, inputIndex uint32, priv
 	}
 
 	sh, err := tx.CalcInputSignatureHash(inputIndex, *ms.SigHashFlag)
+	fmt.Printf("Go sighash: %x\n", sh)
 	if err != nil {
 		return nil, err
 	}

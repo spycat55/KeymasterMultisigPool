@@ -9,6 +9,9 @@ import OP from '@bsv/sdk/script/OP';
 import LockingScript from '@bsv/sdk/script/LockingScript';
 import UnlockingScript from '@bsv/sdk/script/UnlockingScript';
 import { fromBase58Check } from '@bsv/sdk/primitives/utils';
+import { hash256 } from '@bsv/sdk/primitives/Hash';
+import * as ECDSA from '@bsv/sdk/primitives/ECDSA';
+import BigNumber from '@bsv/sdk/primitives/BigNumber';
 import { createDualMultisigScript, createP2PKHScript } from './1base_tx';
 
 // 定义 SigHash 常量，与 Go SDK 保持一致
@@ -197,11 +200,13 @@ interface DualSpendTxResponse {
 			scope: TransactionSignature.SIGHASH_ALL | TransactionSignature.SIGHASH_FORKID
 		});
 
-		// 客户端签名
-		const clientSignature = clientPrivKey.sign(sighashData);
+		// 生成双 SHA256 哈希
+        const msgHash = hash256(sighashData);
+        // 客户端确定性签名（RFC6979）
+        const clientSignature = ECDSA.sign(new BigNumber(msgHash, 16), clientPrivKey, true);
 
-		// 构造客户端签名字节（包含sighash标志）
-		const clientSignatureDER = clientSignature.toDER() as number[];
+        // 构造客户端签名字节（包含sighash标志）
+        const clientSignatureDER = clientSignature.toDER() as number[];
 		const clientSignBytes = [...clientSignatureDER, TransactionSignature.SIGHASH_ALL | TransactionSignature.SIGHASH_FORKID];
 
 		return clientSignBytes;
