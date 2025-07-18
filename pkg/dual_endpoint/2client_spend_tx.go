@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 
+	script "github.com/bsv-blockchain/go-sdk/script"
+
 	libs "github.com/spycat55/KeymasterMultisigPool/pkg/libs"
 	multisig "github.com/spycat55/KeymasterMultisigPool/pkg/libs"
 
@@ -119,6 +121,9 @@ func SubBuildDualFeePoolSpendTX(
 
 	// 更新找零输出的金额
 	transactionTwo.Outputs[1].Satoshis = serverValue - fee
+
+	// 清空假解锁脚本，防止广播时出现非规范 DER 签名错误，后续由真实签名填充
+	transactionTwo.Inputs[0].UnlockingScript = script.NewFromBytes([]byte{})
 
 	// transactionTwo.Inputs[0].UnlockingScript = serverSignByte
 

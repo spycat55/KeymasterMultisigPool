@@ -10,8 +10,10 @@ import (
 
 	pkg "github.com/spycat55/KeymasterMultisigPool/pkg"
 	ce "github.com/spycat55/KeymasterMultisigPool/pkg/dual_endpoint"
+	libs "github.com/spycat55/KeymasterMultisigPool/pkg/libs"
 
 	ec "github.com/bsv-blockchain/go-sdk/primitives/ec"
+	sighash "github.com/bsv-blockchain/go-sdk/transaction/sighash"
 )
 
 type Fixture struct {
@@ -88,8 +90,20 @@ func main() {
 	}
 
 	fmt.Printf("Step1 - Hex: %s\n", res1.Tx.String())
+	// 在客户端收到 server 私钥的环境下，完成多签输入脚本
+	sigHash := sighash.Flag(sighash.ForkID | sighash.All)
+	ms, err := libs.Unlock([]*ec.PrivateKey{serverPriv, clientPriv}, []*ec.PublicKey{serverPriv.PubKey(), clientPriv.PubKey()}, 2, &sigHash)
+	if err != nil {
+		log.Fatalf("unlock template: %v", err)
+	}
+	unlockScript, err := ms.Sign(bTx, 0)
+	if err != nil {
+		log.Fatalf("final sign: %v", err)
+	}
+	bTx.Inputs[0].UnlockingScript = unlockScript
+
 	fmt.Printf("Step2 - Hex: %s\n", bTx.String())
-	_ = clientSignBytes // not used here
+	_ = clientSignBytes
 
 	// new utxo comes from bTx output[1] (client P2PKH)
 	newUtxo := pkg.UTXO{
