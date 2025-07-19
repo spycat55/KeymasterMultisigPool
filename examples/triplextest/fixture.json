@@ -4,9 +4,9 @@
   "escrowPrivHex": "a2d2ca4c19e3c560792ca751842c29b9da94be09f712a7f9ba7c66e64a354829",
   "clientUtxos": [
     {
-      "txid": "ecc46310e20e44ae5a8e742dc06cc5b6d86ea447609abac4bed143c40d65d657",
+      "txid": "ffcfe296a596f01e5cef2d14f39bc61f55c8f0535a5f723c1b5b043b77053595",
       "vout": 1,
-      "satoshis": 19998
+      "satoshis": 19996
     }
   ],
   "feePerByte": 1.2

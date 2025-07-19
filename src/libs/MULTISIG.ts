@@ -13,6 +13,7 @@ import LockingScript from '@bsv/sdk/script/LockingScript';
 import UnlockingScript from '@bsv/sdk/script/UnlockingScript';
 import { toHex } from '@bsv/sdk/primitives/utils';
 import TransactionSignature from '@bsv/sdk/primitives/TransactionSignature';
+import { generateKGoStyle, signGoCompatible } from '../crypto/go_rfc6979';
 
 // 错误定义
 const Errors = {
@@ -134,7 +135,7 @@ export default class MultiSig implements ScriptTemplate {
    */
   public unlock(privateKeys: PrivateKey[], publicKeys: PublicKey[], m: number, sigHashType: number = 0x41): ScriptTemplateUnlock {
     // const multiSig = new MultiSig(privateKeys, publicKeys, m, sigHashType);
-    
+
     return {
       sign: async (tx: Transaction, inputIndex: number): Promise<UnlockingScript> => {
         const script = this.sign(tx, inputIndex, privateKeys, publicKeys, m, sigHashType);
@@ -179,8 +180,8 @@ export default class MultiSig implements ScriptTemplate {
     }
 
     // 获取输入的源交易输出信息
-    
-    
+
+
     // 创建解锁脚本
     const script = new Script([]);
     script.writeOpCode(OP.OP_0); // OP_0 for CHECKMULTISIG bug
@@ -205,17 +206,24 @@ export default class MultiSig implements ScriptTemplate {
         lockTime: tx.lockTime,
         scope: sigHashType
       });
-      
+
       // 对 sighashData 进行双重哈希 (Sha256d)，然后签名
-      const hashBuf = hash256(sighashData);
-      const sig = ECDSA.sign(new BigNumber(hashBuf, 16), privateKeys[i], true);
-      
+      const hashBuf2 = hash256(sighashData);
+      // Go-compatible deterministic k
+      const kGo = generateKGoStyle(Buffer.from(privateKeys[i].toString(16).padStart(64,'0'), 'hex'), Buffer.from(hashBuf2));
+      const sigObj = privateKeys[i].sign(
+        Array.from(hashBuf2),
+        undefined,
+        true,
+        () => new BigNumber(kGo.toString(16), 16)
+      );
+
       // 添加带有 SIGHASH 类型的签名
       const signature = Buffer.concat([
-        Buffer.from(sig.toDER()),
+        Buffer.from(sigObj.toDER()),
         Buffer.from([sigHashType])
       ]);
-      
+
       // 将签名数据写入脚本
       script.writeBin([...new Uint8Array(signature)]);
     }
@@ -238,20 +246,20 @@ export default class MultiSig implements ScriptTemplate {
     // 获取输入的源交易输出信息
     const input = tx.inputs[inputIndex];
     const sourceSatoshis = input.sourceTransaction?.outputs[input.sourceOutputIndex]?.satoshis;
-    
+
     // 创建多签锁定脚本 - 这里需要获取正确的锁定脚本
     // 假设已经设置在 input.unlockingScript 中
     const lockingScript = input.sourceTransaction?.outputs[input.sourceOutputIndex]?.lockingScript;
-    
+
     if (!lockingScript) {
       throw new Error('锁定脚本未设置，无法生成签名');
     }
-    
+
     // 确保 sourceSatoshis 不为 undefined
     if (sourceSatoshis === undefined) {
       throw new Error('源交易输出的 satoshis 值未设置，无法生成签名');
     }
-    
+
     // 使用 TransactionSignature.format 计算签名哈希
     const params = {
       sourceTXID: input.sourceTXID || '',
@@ -266,35 +274,38 @@ export default class MultiSig implements ScriptTemplate {
       lockTime: tx.lockTime,
       scope: sigHashType
     };
-    
-    // 打印所有参数
-    // console.log('TransactionSignature.format 参数:');
-    // console.log('sourceTXID:', params.sourceTXID);
-    // console.log('sourceOutputIndex:', params.sourceOutputIndex);
-    // console.log('sourceSatoshis:', params.sourceSatoshis);
-    // console.log('transactionVersion:', params.transactionVersion);
-    // console.log('otherInputs:', JSON.stringify(params.otherInputs));
-    // console.log('outputs:', JSON.stringify(params.outputs));
-    // console.log('inputIndex:', params.inputIndex);
-    // console.log('subscript:', params.subscript.toHex());
-    // console.log('inputSequence:', params.inputSequence);
-    // console.log('lockTime:', params.lockTime);
-    // console.log('scope:', params.scope);
-    
+
     const sighashData = TransactionSignature.format(params);
-    
-    // console.log('=====> sighashData:', toHex(sighashData));
+
     // 对 sighashData 进行双重哈希 (Sha256d)，然后签名
     const hashBuf2 = hash256(sighashData);
-    const sig = ECDSA.sign(new BigNumber(hashBuf2, 16), privateKey, true);
-    // console.log('=====> public key:', privateKey.toPublicKey().toDER("hex"));
     
+    // Use our Go-compatible signature function
+    const privateKeyHex = privateKey.toString(16).padStart(64, '0');
+    const sighashHex = Buffer.from(hashBuf2).toString('hex');
+    
+    console.log('DEBUG privKey', privateKeyHex);
+    console.log('DEBUG sighash', sighashHex);
+    
+    const goCompatibleSig = signGoCompatible(privateKeyHex, sighashHex);
+    
+    console.log('DEBUG Go-compatible r', goCompatibleSig.r);
+    console.log('DEBUG Go-compatible s', goCompatibleSig.s);
+    
+    // Create TransactionSignature object from our Go-compatible signature
+    const sigObj = new TransactionSignature(
+      new BigNumber(goCompatibleSig.r, 16),
+      new BigNumber(goCompatibleSig.s, 16),
+      sigHashType
+    );
+    
+    const sigDER = sigObj.toDER() as number[];
+
     // 返回带有 SIGHASH 类型的签名
     const signature = Buffer.concat([
-      Buffer.from(sig.toDER()),
+      Buffer.from(sigDER),
       Buffer.from([sigHashType])
     ]);
-    // console.log('=====> signature:', signature.toString('hex'));
     return signature;
   }
 
@@ -314,7 +325,7 @@ export default class MultiSig implements ScriptTemplate {
     // 创建空脚本
     const script = new Script([]);
     script.writeOpCode(OP.OP_0);
-    
+
     // 添加假签名（72字节每个 + 1字节 SIGHASH）
     for (let i = 0; i < m; i++) {
       // 假签名数据：使用72字节的空数据模拟签名（最大DER签名长度）+ 1字节的空SigHashFlag
@@ -322,7 +333,7 @@ export default class MultiSig implements ScriptTemplate {
       const fakeSigWithType = Buffer.concat([fakeSig, Buffer.from([0])]);
       script.writeBin([...new Uint8Array(fakeSigWithType)]);
     }
-    
+
     return script;
   }
 
@@ -334,11 +345,11 @@ export default class MultiSig implements ScriptTemplate {
     // 创建空脚本
     const script = new Script([]);
     script.writeOpCode(OP.OP_0);
-    
+
     for (const sig of signatures) {
       script.writeBin([...new Uint8Array(sig)]);
     }
-    
+
     return script;
   }
 

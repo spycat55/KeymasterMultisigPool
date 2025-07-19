@@ -81,7 +81,7 @@ func main() {
         log.Fatalf("step1: %v", err)
     }
 
-    fmt.Printf("Step1 - Hex: %s\n", step1.Tx.String())
+    fmt.Printf("Step1Hex: %s\n", step1.Tx.String())
 
     // Step2: Client constructs spend TX and provides its signature
     tx2, clientSignBytes, amount, err := te.BuildTripleFeePoolSpendTX(step1.Tx, step1.Amount, f.EndHeight, serverPriv.PubKey(), clientPriv, escrowPriv.PubKey(), f.IsMain, f.FeeRate)
@@ -89,7 +89,7 @@ func main() {
         log.Fatalf("step2: %v", err)
     }
 
-    fmt.Printf("Step2 (unsigned) - Hex: %s\n", tx2.String())
+    fmt.Printf("Step2Hex: %s\n", tx2.String())
 
     // Step3: Server signs to finalize
     serverSignBytes, err := te.SpendTXTripleFeePoolBSign(tx2, step1.Amount, serverPriv.PubKey(), clientPriv.PubKey(), escrowPriv)
@@ -105,7 +105,7 @@ func main() {
     }
     tx2.Inputs[0].UnlockingScript = unlockScript
 
-    fmt.Printf("Step3 - Final Hex: %s\n", tx2.String())
+    fmt.Printf("Step3Hex: %s\n", tx2.String())
 
     // Output new UTXO belonging to client (output[1])
     newUtxo := pkg.UTXO{

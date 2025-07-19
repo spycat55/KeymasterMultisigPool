@@ -6,7 +6,7 @@ import TransactionSignature from '@bsv/sdk/primitives/TransactionSignature';
 // import OP from '@bsv/sdk/script/OP';
 // import LockingScript from '@bsv/sdk/script/LockingScript';
 // import UnlockingScript from '@bsv/sdk/script/UnlockingScript';
-import MultiSig from '$lib/script/MULTISIG';
+import MultiSig from '../libs/MULTISIG';
 
 // 定义 SigHash 常量，与 Go SDK 保持一致
 const SigHash = {
@@ -78,12 +78,11 @@ const SigHash = {
 		targetAmount: number,
 		serverPublicKey: PublicKey,
 		aPublicKey: PublicKey,
+		escrowPublicKey: PublicKey,
 		bPrivateKey: PrivateKey
 	): Promise<Buffer> {
-		const bPublicKey = bPrivateKey.toPublicKey();
-
-		// 创建多签脚本
-		const priorityScript = new MultiSig().lock([serverPublicKey, aPublicKey, bPublicKey], 2);
+		// 创建多签脚本 - 使用正确的公钥顺序
+		const priorityScript = new MultiSig().lock([serverPublicKey, aPublicKey, escrowPublicKey], 2);
 
 		console.log('创建优先级脚本成功');
 

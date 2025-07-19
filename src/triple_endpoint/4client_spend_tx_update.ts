@@ -7,7 +7,7 @@ import TransactionSignature from '@bsv/sdk/primitives/TransactionSignature';
 // import OP from '@bsv/sdk/script/OP';
 // import LockingScript from '@bsv/sdk/script/LockingScript';
 // import UnlockingScript from '@bsv/sdk/script/UnlockingScript';
-import MultiSig from '$lib/script/MULTISIG';
+import MultiSig from '../libs/MULTISIG';
 
 // 定义 SigHash 常量，与 Go SDK 保持一致
 const SigHash = {

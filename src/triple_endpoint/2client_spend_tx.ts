@@ -9,8 +9,8 @@ import TransactionSignature from '@bsv/sdk/primitives/TransactionSignature';
 // import LockingScript from '@bsv/sdk/script/LockingScript';
 // import UnlockingScript from '@bsv/sdk/script/UnlockingScript';
 // import { fromBase58Check } from '@bsv/sdk/primitives/utils';
-import MultiSig from '$lib/script/MULTISIG';
-import P2PKH from '../P2PKH';
+import MultiSig from '../libs/MULTISIG';
+import P2PKH from '../libs/P2PKH';
 // import unlock from 'lucide-svelte/icons/unlock';
 
 // 定义 SigHash 常量，与 Go SDK 保持一致
