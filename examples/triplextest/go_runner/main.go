@@ -8,7 +8,6 @@ import (
     "path/filepath"
     "runtime"
 
-    pkg "github.com/spycat55/KeymasterMultisigPool/pkg"
     te "github.com/spycat55/KeymasterMultisigPool/pkg/triple_endpoint"
     libs "github.com/spycat55/KeymasterMultisigPool/pkg/libs"
 
@@ -17,14 +16,14 @@ import (
 )
 
 type Fixture struct {
-    ClientPrivHex string   `json:"clientPrivHex"`
-    ServerPrivHex string   `json:"serverPrivHex"`
-    EscrowPrivHex string   `json:"escrowPrivHex"`
-    ClientUtxos   []pkg.UTXO `json:"clientUtxos"`
-    EndHeight     uint32     `json:"endHeight"`
-    FeeRate       float64    `json:"feePerByte"`
-    IsMain        bool       `json:"isMain"`
-    ChangeAddress string     `json:"changeAddress"` // not used currently
+    ClientPrivHex string      `json:"clientPrivHex"`
+    ServerPrivHex string      `json:"serverPrivHex"`
+    EscrowPrivHex string      `json:"escrowPrivHex"`
+    ClientUtxos   []libs.UTXO `json:"clientUtxos"`
+    EndHeight     uint32      `json:"endHeight"`
+    FeeRate       float64     `json:"feePerByte"`
+    IsMain        bool        `json:"isMain"`
+    ChangeAddress string      `json:"changeAddress"` // not used currently
 }
 
 func loadFixture() Fixture {
@@ -63,7 +62,7 @@ func loadFixture() Fixture {
     return f
 }
 
-func saveNewUTXO(newUtxo pkg.UTXO) {
+func saveNewUTXO(newUtxo libs.UTXO) {
     out, _ := json.MarshalIndent(newUtxo, "", "  ")
     fmt.Printf("NEW_UTXO: %s\n", string(out))
 }
@@ -108,7 +107,7 @@ func main() {
     fmt.Printf("Step3Hex: %s\n", tx2.String())
 
     // Output new UTXO belonging to client (output[1])
-    newUtxo := pkg.UTXO{
+    newUtxo := libs.UTXO{
         TxID:  tx2.TxID().String(),
         Vout:  1,
         Value: amount,

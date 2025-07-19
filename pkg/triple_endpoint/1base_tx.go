@@ -25,16 +25,9 @@ type BuildStep1Response struct {
 	Index  int
 }
 
-// UTXO represents an unspent transaction output
-type UTXO struct {
-	TxID  string `json:"txid"`
-	Vout  uint32 `json:"vout"`
-	Value uint64 `json:"satoshis"`
-}
-
 // p2pkh to 2t2多签, 不找零
 func BuildTripleFeePoolBaseTx(
-	clientUtxo *[]UTXO, // 发起者 utxos, 我提供的金额就是这个 utxo 的全额
+	clientUtxo *[]libs.UTXO, // 发起者 utxos, 我提供的金额就是这个 utxo 的全额
 	// serverValue uint64, // 服务器提供金额
 	serverPublicKey *ec.PublicKey,
 	aPrivateKey *ec.PrivateKey,

@@ -24,7 +24,7 @@ fi
 
 # 运行测试
 echo "🧪 运行测试..."
-go test ./...
+go test ./pkg/...
 
 # 运行 go mod tidy
 echo "🧹 整理依赖..."

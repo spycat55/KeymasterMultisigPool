@@ -13,6 +13,7 @@ const Version = "1.0.0"
 
 // Re-export multisig types and functions
 type MultiSig = libs.MultiSig
+type UTXO = libs.UTXO
 
 var (
 	// Multisig script creation

@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"runtime"
 
-	pkg "github.com/spycat55/KeymasterMultisigPool/pkg"
 	ce "github.com/spycat55/KeymasterMultisigPool/pkg/dual_endpoint"
 	libs "github.com/spycat55/KeymasterMultisigPool/pkg/libs"
 
@@ -17,12 +16,12 @@ import (
 )
 
 type Fixture struct {
-	ClientPrivHex string     `json:"clientPrivHex"`
-	ServerPrivHex string     `json:"serverPrivHex"`
-	ClientUtxos   []pkg.UTXO `json:"clientUtxos"`
-	EndHeight     uint32     `json:"endHeight"`
-	FeeRate       float64    `json:"feeRate"`
-	IsMain        bool       `json:"isMain"`
+	ClientPrivHex string      `json:"clientPrivHex"`
+	ServerPrivHex string      `json:"serverPrivHex"`
+	ClientUtxos   []libs.UTXO `json:"clientUtxos"`
+	EndHeight     uint32      `json:"endHeight"`
+	FeeRate       float64     `json:"feeRate"`
+	IsMain        bool        `json:"isMain"`
 }
 
 func loadFixture() Fixture {
@@ -66,7 +65,7 @@ func loadFixture() Fixture {
 }
 
 // helper to save produced utxo json for next round
-func saveNewUTXO(newUtxo pkg.UTXO) {
+func saveNewUTXO(newUtxo libs.UTXO) {
 	out, _ := json.MarshalIndent(newUtxo, "", "  ")
 	fmt.Printf("NEW_UTXO: %s\n", string(out))
 }
@@ -106,7 +105,7 @@ func main() {
 	_ = clientSignBytes
 
 	// new utxo comes from bTx output[1] (client P2PKH)
-	newUtxo := pkg.UTXO{
+	newUtxo := libs.UTXO{
 		TxID:  bTx.TxID().String(),
 		Vout:  1,
 		Value: amount,

@@ -8,19 +8,19 @@ import (
 	"path/filepath"
 	"runtime"
 
-	pkg "github.com/spycat55/KeymasterMultisigPool/pkg"
 	ce "github.com/spycat55/KeymasterMultisigPool/pkg/dual_endpoint"
+	libs "github.com/spycat55/KeymasterMultisigPool/pkg/libs"
 
 	ec "github.com/bsv-blockchain/go-sdk/primitives/ec"
 )
 
 type Fixture struct {
-	ClientPrivHex string     `json:"clientPrivHex"`
-	ServerPrivHex string     `json:"serverPrivHex"`
-	ClientUtxos   []pkg.UTXO `json:"clientUtxos"`
-	EndHeight     uint32     `json:"endHeight"`
-	FeeRate       float64    `json:"feeRate"`
-	IsMain        bool       `json:"isMain"`
+	ClientPrivHex string      `json:"clientPrivHex"`
+	ServerPrivHex string      `json:"serverPrivHex"`
+	ClientUtxos   []libs.UTXO `json:"clientUtxos"`
+	EndHeight     uint32      `json:"endHeight"`
+	FeeRate       float64     `json:"feeRate"`
+	IsMain        bool        `json:"isMain"`
 }
 
 func loadFixture() Fixture {

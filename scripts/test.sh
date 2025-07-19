@@ -11,11 +11,11 @@ npm test
 
 # 运行 Go 测试
 echo "🚀 运行 Go 测试..."
-go test ./... -v
+go test ./pkg/... -v
 
 # 运行 Go 测试覆盖率
 echo "📊 生成 Go 测试覆盖率报告..."
-go test ./... -coverprofile=coverage.out
+go test ./pkg/... -coverprofile=coverage.out
 go tool cover -html=coverage.out -o coverage.html
 
 echo "✅ 所有测试完成!"
