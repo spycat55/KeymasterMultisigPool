@@ -1,5 +1,6 @@
 package pkg
 
+// UTXO represents an unspent transaction output
 type UTXO struct {
 	TxID  string `json:"txid"`
 	Vout  uint32 `json:"vout"`

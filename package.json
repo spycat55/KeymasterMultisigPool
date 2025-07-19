@@ -18,19 +18,19 @@
   },
   "scripts": {
     "build": "tsup",
-    "build:go": "go build -o build/ ./cmd/...",
-    "build:all": "npm run build && npm run build:go",
+    "build:go": "./scripts/build.sh",
+    "build:all": "./scripts/build.sh",
     "dev": "tsup --watch",
     "test": "jest",
     "test:go": "go test ./...",
-    "test:all": "npm run test && npm run test:go",
+    "test:all": "./scripts/test.sh",
     "lint": "eslint src/**/*.ts",
     "lint:go": "golangci-lint run",
-    "clean": "rm -rf dist build",
-    "prepublishOnly": "npm run build:all",
-    "publish:npm": "npm publish",
+    "clean": "rm -rf dist build coverage.out coverage.html",
+    "prepublishOnly": "npm run build",
+    "publish:npm": "./scripts/publish-npm.sh",
     "publish:go": "./scripts/publish-go.sh",
-    "publish:all": "npm run publish:npm && npm run publish:go"
+    "publish:all": "./scripts/publish-all.sh"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

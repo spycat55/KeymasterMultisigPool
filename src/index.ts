@@ -46,7 +46,7 @@ export class MultisigPoolClient {
       throw new Error(`Failed to create pool: ${response.statusText}`);
     }
 
-    return response.json();
+    return response.json() as Promise<MultisigPool>;
   }
 
   /**
@@ -59,7 +59,7 @@ export class MultisigPoolClient {
       throw new Error(`Failed to get pool: ${response.statusText}`);
     }
 
-    return response.json();
+    return response.json() as Promise<MultisigPool>;
   }
 
   /**
@@ -82,7 +82,7 @@ export class MultisigPoolClient {
       throw new Error(`Failed to create transaction: ${response.statusText}`);
     }
 
-    return response.json();
+    return response.json() as Promise<Transaction>;
   }
 
   /**

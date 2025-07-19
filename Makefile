@@ -35,14 +35,13 @@ test:
 # 清理构建文件
 clean:
 	@echo "🧹 清理构建文件..."
-	rm -rf dist build coverage.out coverage.html node_modules/.cache
+	rm -rf dist coverage.out coverage.html node_modules/.cache
 	@echo "✅ 清理完成"
 
 # 开发模式
 dev:
 	@echo "🚀 启动开发模式..."
-	npm run dev &
-	go run ./cmd/server
+	npm run dev
 
 # 代码检查
 lint:
@@ -63,16 +62,16 @@ publish:
 
 # Go 相关命令
 go-build:
-	@echo "🚀 构建 Go 项目..."
-	go build -o build/server ./cmd/server
+	@echo "🚀 验证 Go 项目编译..."
+	go build ./pkg/...
 
 go-test:
 	@echo "🧪 运行 Go 测试..."
 	go test ./... -v
 
-go-run:
-	@echo "🚀 运行 Go 服务器..."
-	go run ./cmd/server
+go-mod:
+	@echo "🧹 整理 Go 依赖..."
+	go mod tidy
 
 # TypeScript 相关命令
 ts-build:
