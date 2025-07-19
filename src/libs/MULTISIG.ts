@@ -284,13 +284,7 @@ export default class MultiSig implements ScriptTemplate {
     const privateKeyHex = privateKey.toString(16).padStart(64, '0');
     const sighashHex = Buffer.from(hashBuf2).toString('hex');
     
-    console.log('DEBUG privKey', privateKeyHex);
-    console.log('DEBUG sighash', sighashHex);
-    
     const goCompatibleSig = signGoCompatible(privateKeyHex, sighashHex);
-    
-    console.log('DEBUG Go-compatible r', goCompatibleSig.r);
-    console.log('DEBUG Go-compatible s', goCompatibleSig.s);
     
     // Create TransactionSignature object from our Go-compatible signature
     const sigObj = new TransactionSignature(

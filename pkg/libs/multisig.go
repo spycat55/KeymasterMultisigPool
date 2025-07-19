@@ -2,7 +2,6 @@ package libs
 
 import (
 	"errors"
-	"fmt"
 
 	ec "github.com/bsv-blockchain/go-sdk/primitives/ec"
 	script "github.com/bsv-blockchain/go-sdk/script"
@@ -80,22 +79,25 @@ func (ms *MultiSig) Sign(tx *transaction.Transaction, inputIndex uint32) (*scrip
 		return nil, transaction.ErrEmptyPreviousTx
 	}
 
-	// Print raw sighash preimage for debugging (before double SHA256)
+
 	preimage, _ := tx.CalcInputPreimage(inputIndex, *ms.SigHashFlag)
-	fmt.Printf("Go sighashData: %x\n", preimage)
-	// Extract and print intermediate hashes
+
+
 	if len(preimage) >= 68 {
 		hashPrevouts := preimage[4:36]
 		hashSequence := preimage[36:68]
 		// hashOutputs is located 40 bytes from the end (4 locktime + 4 sighash flag + 32 hashOutputs)
 		hashOutputs := preimage[len(preimage)-40-32 : len(preimage)-40]
-		fmt.Printf("Go hashPrevouts: %x\n", hashPrevouts)
-		fmt.Printf("Go hashSequence: %x\n", hashSequence)
-		fmt.Printf("Go hashOutputs : %x\n", hashOutputs)
+	_ = hashPrevouts
+	_ = hashSequence
+	_ = hashOutputs
+
+
+
 	}
 
 	sh, err := tx.CalcInputSignatureHash(inputIndex, *ms.SigHashFlag)
-	fmt.Printf("Go sighash: %x\n", sh)
+
 	if err != nil {
 		return nil, err
 	}
@@ -131,22 +133,25 @@ func (ms *MultiSig) SignOne(tx *transaction.Transaction, inputIndex uint32, priv
 		return nil, transaction.ErrEmptyPreviousTx
 	}
 
-	// Print raw sighash preimage for debugging (before double SHA256)
+
 	preimage, _ := tx.CalcInputPreimage(inputIndex, *ms.SigHashFlag)
-	fmt.Printf("Go sighashData: %x\n", preimage)
-	// Extract and print intermediate hashes
+
+
 	if len(preimage) >= 68 {
 		hashPrevouts := preimage[4:36]
 		hashSequence := preimage[36:68]
 		// hashOutputs is located 40 bytes from the end (4 locktime + 4 sighash flag + 32 hashOutputs)
 		hashOutputs := preimage[len(preimage)-40-32 : len(preimage)-40]
-		fmt.Printf("Go hashPrevouts: %x\n", hashPrevouts)
-		fmt.Printf("Go hashSequence: %x\n", hashSequence)
-		fmt.Printf("Go hashOutputs : %x\n", hashOutputs)
+	_ = hashPrevouts
+	_ = hashSequence
+	_ = hashOutputs
+
+
+
 	}
 
 	sh, err := tx.CalcInputSignatureHash(inputIndex, *ms.SigHashFlag)
-	fmt.Printf("Go sighash: %x\n", sh)
+
 	if err != nil {
 		return nil, err
 	}
@@ -160,9 +165,6 @@ func (ms *MultiSig) SignOne(tx *transaction.Transaction, inputIndex uint32, priv
 	// Sign with required number of private keys
 	// for i := 0; i < ms.M; i++ {
 	sig, err := privateKey.Sign(sh)
-	fmt.Printf("GO privKey %x\n", privateKey.D.Bytes())
-	fmt.Printf("GO r %x\n", sig.R.Bytes())
-	fmt.Printf("GO s %x\n", sig.S.Bytes())
 	if err != nil {
 		return nil, err
 	}
