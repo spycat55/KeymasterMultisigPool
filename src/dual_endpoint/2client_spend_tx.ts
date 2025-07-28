@@ -77,7 +77,8 @@ interface DualSpendTxResponse {
 	 */
 	export async function subBuildDualFeePoolSpendTX(
 		prevTxId: string,
-		serverValue: number,
+		totalAmount: number, // 多签 UTXO 总金额
+		serverAmount: number, // 服务器获得的金额
 		endHeight: number,
 		clientPrivateKey: PrivateKey,
 		serverPublicKey: PublicKey,
@@ -110,7 +111,7 @@ interface DualSpendTxResponse {
 		serverLockingScript.chunks = serverChangeScript.chunks;
 		tx.addOutput({
 			lockingScript: serverLockingScript,
-			satoshis: 0 // 初始为0，后续会更新
+			satoshis: serverAmount
 		});
 
 		// 创建客户端找零脚本（P2PKH）
@@ -121,7 +122,7 @@ interface DualSpendTxResponse {
 		clientLockingScript.chunks = clientChangeScript.chunks;
 		tx.addOutput({
 			lockingScript: clientLockingScript,
-			satoshis: serverValue // 初始设置为服务器提供的金额
+			satoshis: totalAmount - serverAmount
 		});
 
 		// 创建假的解锁脚本来估算交易大小
@@ -133,8 +134,8 @@ interface DualSpendTxResponse {
 		const txSize = tx.toBinary().length;
 		let fee = Math.floor((txSize / 1000.0) * feeRate);
 
-		if (serverValue < fee) {
-			throw new Error(`余额不足，需要 ${fee}，拥有 ${serverValue}`);
+		if (totalAmount < serverAmount + fee) {
+			throw new Error(`余额不足，需要 ${serverAmount + fee} (serverAmount ${serverAmount} + fee ${fee})，拥有 ${totalAmount}`);
 		}
 
 		if (fee === 0) {
@@ -142,11 +143,11 @@ interface DualSpendTxResponse {
 		}
 
 		// 更新客户端输出金额（扣除手续费）
-		tx.outputs[1].satoshis = serverValue - fee;
+		tx.outputs[1].satoshis = totalAmount - serverAmount - fee;
 
 		return {
 			tx,
-			amount: serverValue - fee
+			amount: totalAmount - serverAmount - fee
 		};
 	}
 
@@ -161,7 +162,7 @@ interface DualSpendTxResponse {
 	 */
 	export async function spendTXDualFeePoolClientSign(
 		bTx: Transaction,
-		targetAmount: number,
+		totalAmount: number,
 		clientPrivKey: PrivateKey,
 		serverPublicKey: PublicKey
 	): Promise<number[]> {
@@ -181,7 +182,7 @@ interface DualSpendTxResponse {
 		priorityLockingScript.chunks = priorityScript.chunks;
 
 		bTx.inputs[0].sourceTransaction.outputs[0] = {
-			satoshis: targetAmount,
+			satoshis: totalAmount,
 			lockingScript: priorityLockingScript
 		};
 
@@ -189,7 +190,7 @@ interface DualSpendTxResponse {
 		const sighashData = TransactionSignature.format({
 			sourceTXID: bTx.inputs[0].sourceTXID || '',
 			sourceOutputIndex: bTx.inputs[0].sourceOutputIndex,
-			sourceSatoshis: targetAmount,
+			sourceSatoshis: totalAmount,
 			transactionVersion: bTx.version,
 			otherInputs: [],
 			outputs: bTx.outputs,
@@ -226,7 +227,8 @@ interface DualSpendTxResponse {
 	 */
 	export async function buildDualFeePoolSpendTX(
 		aTx: Transaction,
-		serverValue: number,
+		totalAmount: number,
+		serverAmount: number,
 		endHeight: number,
 		clientPrivateKey: PrivateKey,
 		serverPublicKey: PublicKey,
@@ -236,7 +238,8 @@ interface DualSpendTxResponse {
 			// 构建交易
 			const { tx: txTwo, amount } = await subBuildDualFeePoolSpendTX(
 				aTx.id('hex'),
-				serverValue,
+				totalAmount,
+				serverAmount,
 				endHeight,
 				clientPrivateKey,
 				serverPublicKey,
@@ -248,7 +251,7 @@ interface DualSpendTxResponse {
 			// 进行客户端签名
 			const clientSignBytes = await spendTXDualFeePoolClientSign(
 				txTwo,
-				serverValue,
+				totalAmount,
 				clientPrivateKey,
 				serverPublicKey
 			);

@@ -19,8 +19,8 @@ import (
 // 多签 to client，server 提供金额
 func SubBuildDualFeePoolSpendTX(
 	prevTxId string,
-	serverValue uint64, // server 提供金额
-	// cmdValue uint64, // cmd 提供金额
+	totalAmount uint64, // 多签 UTXO 总金额
+	serverAmount uint64, // server 最终分配金额
 	endHeight uint32, // 区块高度
 	clientPrivateKey *ec.PrivateKey,
 	serverPublicKey *ec.PublicKey,
@@ -60,7 +60,7 @@ func SubBuildDualFeePoolSpendTX(
 		prevTxId,
 		0,
 		prevMultisigTxLockingAsm,
-		serverValue,
+		totalAmount,
 		aMultisigUnlockingScriptTemplate,
 	)
 	if err != nil {
@@ -80,7 +80,7 @@ func SubBuildDualFeePoolSpendTX(
 
 	// 添加服务器输出
 	transactionTwo.AddOutput(&tx.TransactionOutput{
-		Satoshis:      0,
+		Satoshis:      serverAmount,
 		LockingScript: serverChangeScript,
 	})
 
@@ -96,7 +96,7 @@ func SubBuildDualFeePoolSpendTX(
 
 	// 添加客户端输出
 	transactionTwo.AddOutput(&tx.TransactionOutput{
-		Satoshis:      serverValue,
+		Satoshis:      totalAmount - serverAmount,
 		LockingScript: clientChangeScript,
 	})
 
@@ -112,22 +112,22 @@ func SubBuildDualFeePoolSpendTX(
 
 	// 基于大小计算费用（向上取整到最接近的KB）
 	fee := uint64(float64(txSize) / 1000.0 * feeRate)
-	if serverValue < fee {
-		return nil, 0, fmt.Errorf("not enough balance, need %d, have %d", fee, serverValue)
+	if totalAmount < serverAmount+fee {
+		return nil, 0, fmt.Errorf("not enough balance, need %d (serverAmount %d + fee %d), have %d", serverAmount+fee, serverAmount, fee, totalAmount)
 	}
 	if fee == 0 {
 		fee = 1
 	}
 
 	// 更新找零输出的金额
-	transactionTwo.Outputs[1].Satoshis = serverValue - fee
+	transactionTwo.Outputs[1].Satoshis = totalAmount - serverAmount - fee
 
 	// 清空假解锁脚本，防止广播时出现非规范 DER 签名错误，后续由真实签名填充
 	transactionTwo.Inputs[0].UnlockingScript = script.NewFromBytes([]byte{})
 
 	// transactionTwo.Inputs[0].UnlockingScript = serverSignByte
 
-	return transactionTwo, serverValue - fee, nil
+	return transactionTwo, totalAmount - serverAmount - fee, nil
 }
 
 func SpendTXDualFeePoolClientSign(B_Tx *tx.Transaction, targetAmount uint64, clientPrivKey *ec.PrivateKey, serverPublicKey *ec.PublicKey) (*[]byte, error) {
@@ -170,7 +170,8 @@ func SpendTXDualFeePoolClientSign(B_Tx *tx.Transaction, targetAmount uint64, cli
 // fee 是 server 提供，我只负责精确的金额
 func BuildDualFeePoolSpendTX(
 	A_Tx *tx.Transaction,
-	serverValue uint64, // 服务器提供金额
+	totalAmount uint64, // UTXO 总金额
+	serverAmount uint64, // 服务器分配金额
 	endHeight uint32, // 区块高度
 	clientPrivateKey *ec.PrivateKey,
 	serverPublicKey *ec.PublicKey,
@@ -178,14 +179,14 @@ func BuildDualFeePoolSpendTX(
 	feeRate float64,
 ) (*tx.Transaction, *[]byte, uint64, error) {
 
-	txTwo, amount, err := SubBuildDualFeePoolSpendTX(A_Tx.TxID().String(), serverValue, endHeight, clientPrivateKey, serverPublicKey, isMain, feeRate)
+	txTwo, amount, err := SubBuildDualFeePoolSpendTX(A_Tx.TxID().String(), totalAmount, serverAmount, endHeight, clientPrivateKey, serverPublicKey, isMain, feeRate)
 	if err != nil {
 		log.Printf("BuildOneB error: %v", err)
 		return nil, nil, 0, err
 	}
 
 	// 重新签名
-	clientSignByte, err := SpendTXDualFeePoolClientSign(txTwo, serverValue, clientPrivateKey, serverPublicKey)
+	clientSignByte, err := SpendTXDualFeePoolClientSign(txTwo, totalAmount, clientPrivateKey, serverPublicKey)
 	if err != nil {
 		log.Printf("BuildOneC error: %v", err)
 		return nil, nil, 0, err

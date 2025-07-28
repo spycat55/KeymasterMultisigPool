@@ -83,7 +83,8 @@ func main() {
 	}
 
 	// Step2 Spend tx
-	bTx, clientSignBytes, amount, err := ce.BuildDualFeePoolSpendTX(res1.Tx, res1.Amount, f.EndHeight, clientPriv, serverPriv.PubKey(), f.IsMain, f.FeeRate)
+	const serverAmount uint64 = 100
+	bTx, clientSignBytes, amount, err := ce.BuildDualFeePoolSpendTX(res1.Tx, res1.Amount, serverAmount, f.EndHeight, clientPriv, serverPriv.PubKey(), f.IsMain, f.FeeRate)
 	if err != nil {
 		log.Fatalf("step2: %v", err)
 	}

@@ -51,9 +51,11 @@ function createUnlockScript(sigServer: number[], sigClient: number[]): Script {
   );
 
   // Step2 (without final unlock)
+  const serverAmount = 100;
   const res2 = await buildDualFeePoolSpendTX(
     res1.tx,
     res1.amount,
+    serverAmount,
     f.endHeight,
     clientPriv,
     serverPriv.toPublicKey(),
