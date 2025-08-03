@@ -3,6 +3,9 @@ import Transaction from '@bsv/sdk/transaction/Transaction';
 import TransactionSignature from '@bsv/sdk/primitives/TransactionSignature';
 import Script from '@bsv/sdk/script/Script';
 import LockingScript from '@bsv/sdk/script/LockingScript';
+import { hash256 } from '@bsv/sdk/primitives/Hash';
+import * as ECDSA from '@bsv/sdk/primitives/ECDSA';
+import BigNumber from '@bsv/sdk/primitives/BigNumber';
 import { createDualMultisigScript } from './1base_tx';
 
 export const FINAL_LOCKTIME = 0xffffffff;
@@ -78,7 +81,9 @@ export function clientDualFeePoolSpendTXUpdateSign(
     scope: TransactionSignature.SIGHASH_ALL | TransactionSignature.SIGHASH_FORKID,
   });
 
-  const signature = clientPrivateKey.sign(sighashData);
+  // 客户端确定性签名（RFC6979）
+  const msgHash = hash256(sighashData);
+  const signature = ECDSA.sign(new BigNumber(msgHash, 16), clientPrivateKey, true);
   const signatureDER = signature.toDER() as number[];
 
   return [

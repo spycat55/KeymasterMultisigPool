@@ -121,4 +121,27 @@ function createUnlockScript(sigServer: number[], sigClient: number[]): Script {
   );
 
   console.log('Step3Hex', Buffer.from(serverSignBytes).toString('hex'));
+
+  // Step4 Client update and re-sign
+  const { loadTx, clientDualFeePoolSpendTXUpdateSign } = await import('../../src/dual_endpoint/4client_spend_tx_update');
+  const newServerAmount = 150; // 修改服务器金额
+  const newSequenceNumber = 2;  // 修改序列号
+  
+  const updatedTx = loadTx(
+    res2.tx.toHex(),
+    undefined, // locktime
+    newSequenceNumber,
+    newServerAmount,
+    serverPriv.toPublicKey(),
+    clientPriv.toPublicKey(),
+    res1.amount
+  );
+
+  const clientUpdateSignBytes = clientDualFeePoolSpendTXUpdateSign(
+    updatedTx,
+    clientPriv,
+    serverPriv.toPublicKey()
+  );
+
+  console.log('Step4Hex', Buffer.from(clientUpdateSignBytes).toString('hex'));
 })();

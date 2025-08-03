@@ -98,6 +98,22 @@ func main() {
 	}
 
 	fmt.Printf("Step3Hex %x\n", *serverSignBytes)
+
+	// Step4 Client update and re-sign
+	const newServerAmount uint64 = 150 // 修改服务器金额
+	const newSequenceNumber uint32 = 2 // 修改序列号
+
+	updatedTx, err := ce.LoadTx(bTx.String(), nil, newSequenceNumber, newServerAmount, serverPriv.PubKey(), clientPriv.PubKey(), res1.Amount)
+	if err != nil {
+		log.Fatalf("step4 load tx: %v", err)
+	}
+
+	clientUpdateSignBytes, err := ce.ClientDualFeePoolSpendTXUpdateSign(updatedTx, clientPriv, serverPriv.PubKey())
+	if err != nil {
+		log.Fatalf("step4 client sign: %v", err)
+	}
+
+	fmt.Printf("Step4Hex %x\n", *clientUpdateSignBytes)
 	_ = amount
 	// _ = clientSignBytes
 
