@@ -108,6 +108,17 @@ function createUnlockScript(sigServer: number[], sigClient: number[]): Script {
   // const unlockScript = createUnlockScript(sigServer, sigClient);
   // res2.tx.inputs[0].unlockingScript!.chunks = unlockScript.chunks;
 
-  console.log('Step1Hex:', res1.tx.toHex());
-  console.log('Step2Hex:', res2.tx.toHex());
+  console.log('Step1Hex', res1.tx.toHex());
+  console.log('Step2Hex', Buffer.from(res2.clientSignBytes).toString('hex'));
+
+  // Step3 Server sign
+  const { spendTXServerSign } = await import('../../src/dual_endpoint/3server_sign');
+  const serverSignBytes = spendTXServerSign(
+    res2.tx,
+    res1.amount,
+    serverPriv,
+    clientPriv.toPublicKey(),
+  );
+
+  console.log('Step3Hex', Buffer.from(serverSignBytes).toString('hex'));
 })();

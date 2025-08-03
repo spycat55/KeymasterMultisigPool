@@ -88,21 +88,16 @@ func main() {
 		log.Fatalf("step2: %v", err)
 	}
 
-	fmt.Printf("Step1 - Hex: %s\n", res1.Tx.String())
-	// 在客户端收到 server 私钥的环境下，完成多签输入脚本
-	// sigHash := sighash.Flag(sighash.ForkID | sighash.All)
-	// ms, err := libs.Unlock([]*ec.PrivateKey{serverPriv, clientPriv}, []*ec.PublicKey{serverPriv.PubKey(), clientPriv.PubKey()}, 2, &sigHash)
-	// if err != nil {
-	// 	log.Fatalf("unlock template: %v", err)
-	// }
-	// unlockScript, err := ms.Sign(bTx, 0)
-	// if err != nil {
-	// 	log.Fatalf("final sign: %v", err)
-	// }
-	// bTx.Inputs[0].UnlockingScript = unlockScript
+	fmt.Printf("Step1Hex %s\n", res1.Tx.String())
+	fmt.Printf("Step2Hex %x\n", *clientSignBytes)
 
-	fmt.Printf("Step2 - Hex: %s\n", bTx.String())
-	_ = clientSignBytes
+	// Step3 Server sign
+	serverSignBytes, err := ce.SpendTXServerSign(bTx, res1.Amount, serverPriv, clientPriv.PubKey())
+	if err != nil {
+		log.Fatalf("step3: %v", err)
+	}
+
+	fmt.Printf("Step3Hex %x\n", *serverSignBytes)
 	_ = amount
 	// _ = clientSignBytes
 

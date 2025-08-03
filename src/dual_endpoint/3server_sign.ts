@@ -3,6 +3,9 @@ import Transaction from '@bsv/sdk/transaction/Transaction';
 import TransactionSignature from '@bsv/sdk/primitives/TransactionSignature';
 import Script from '@bsv/sdk/script/Script';
 import LockingScript from '@bsv/sdk/script/LockingScript';
+import { hash256 } from '@bsv/sdk/primitives/Hash';
+import * as ECDSA from '@bsv/sdk/primitives/ECDSA';
+import BigNumber from '@bsv/sdk/primitives/BigNumber';
 import { createDualMultisigScript } from './1base_tx';
 
 /**
@@ -55,8 +58,9 @@ export function spendTXServerSign(
     scope: TransactionSignature.SIGHASH_ALL | TransactionSignature.SIGHASH_FORKID,
   });
 
-  // 服务器签名
-  const signature = serverPrivateKey.sign(sighashData);
+  // 服务器确定性签名（RFC6979）
+  const msgHash = hash256(sighashData);
+  const signature = ECDSA.sign(new BigNumber(msgHash, 16), serverPrivateKey, true);
   const signatureDER = signature.toDER() as number[];
   const serverSignBytes = [
     ...signatureDER,
