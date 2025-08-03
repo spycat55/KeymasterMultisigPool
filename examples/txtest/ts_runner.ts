@@ -144,4 +144,14 @@ function createUnlockScript(sigServer: number[], sigClient: number[]): Script {
   );
 
   console.log('Step4Hex', Buffer.from(clientUpdateSignBytes).toString('hex'));
+
+  // Step5 Server update sign
+  const { serverDualFeePoolSpendTXUpdateSign } = await import('../../src/dual_endpoint/5server_sign_update');
+  const serverUpdateSignBytes = serverDualFeePoolSpendTXUpdateSign(
+    updatedTx,
+    serverPriv,
+    clientPriv.toPublicKey()
+  );
+
+  console.log('Step5Hex', Buffer.from(serverUpdateSignBytes).toString('hex'));
 })();

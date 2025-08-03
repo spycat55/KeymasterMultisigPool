@@ -114,6 +114,14 @@ func main() {
 	}
 
 	fmt.Printf("Step4Hex %x\n", *clientUpdateSignBytes)
+
+	// Step5 Server update sign
+	serverUpdateSignBytes, err := ce.ServerDualFeePoolSpendTXUpdateSign(updatedTx, serverPriv, clientPriv.PubKey())
+	if err != nil {
+		log.Fatalf("step5 server sign: %v", err)
+	}
+
+	fmt.Printf("Step5Hex %x\n", *serverUpdateSignBytes)
 	_ = amount
 	// _ = clientSignBytes
 

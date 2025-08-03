@@ -7,8 +7,8 @@ import (
 	"regexp"
 )
 
-// matches Step1Hex, Step2Hex, Step3Hex, Step4Hex
-var stepRegexp = regexp.MustCompile(`Step([1234])Hex\s+([0-9a-fA-F]+)`)
+// matches Step1Hex, Step2Hex, Step3Hex, Step4Hex, Step5Hex
+var stepRegexp = regexp.MustCompile(`Step([12345])Hex\s+([0-9a-fA-F]+)`)
 
 func capture(cmd *exec.Cmd) ([]string, error) {
 	var out bytes.Buffer
@@ -19,11 +19,11 @@ func capture(cmd *exec.Cmd) ([]string, error) {
 	}
 
 	matches := stepRegexp.FindAllSubmatch(out.Bytes(), -1)
-	if len(matches) != 4 {
-		return nil, fmt.Errorf("expected 4 StepHex outputs, got %d. output=%s", len(matches), out.String())
+	if len(matches) != 5 {
+		return nil, fmt.Errorf("expected 5 StepHex outputs, got %d. output=%s", len(matches), out.String())
 	}
 
-	return []string{string(matches[0][2]), string(matches[1][2]), string(matches[2][2]), string(matches[3][2])}, nil
+	return []string{string(matches[0][2]), string(matches[1][2]), string(matches[2][2]), string(matches[3][2]), string(matches[4][2])}, nil
 }
 
 func main() {
@@ -36,6 +36,7 @@ func main() {
 	fmt.Println("Go Step2Hex", goHex[1])
 	fmt.Println("Go Step3Hex", goHex[2])
 	fmt.Println("Go Step4Hex", goHex[3])
+	fmt.Println("Go Step5Hex", goHex[4])
 
 	tsHex, err := capture(exec.Command("bun", "run", "examples/txtest/ts_runner.ts"))
 	if err != nil {
@@ -46,9 +47,10 @@ func main() {
 	fmt.Println("TS Step2Hex", tsHex[1])
 	fmt.Println("TS Step3Hex", tsHex[2])
 	fmt.Println("TS Step4Hex", tsHex[3])
+	fmt.Println("TS Step5Hex", tsHex[4])
 
 	pass := true
-	for i := 0; i < 4; i++ {
+	for i := 0; i < 5; i++ {
 		if goHex[i] != tsHex[i] {
 			fmt.Printf("Mismatch at Step%d\n", i+1)
 			pass = false
