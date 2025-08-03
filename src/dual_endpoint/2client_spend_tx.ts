@@ -145,6 +145,9 @@ interface DualSpendTxResponse {
 		// 更新客户端输出金额（扣除手续费）
 		tx.outputs[1].satoshis = totalAmount - serverAmount - fee;
 
+		// 清空假解锁脚本，防止广播时出现非规范 DER 签名错误，后续由真实签名填充
+		tx.inputs[0].unlockingScript = new UnlockingScript();
+
 		return {
 			tx,
 			amount: totalAmount - serverAmount - fee

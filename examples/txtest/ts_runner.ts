@@ -63,50 +63,50 @@ function createUnlockScript(sigServer: number[], sigClient: number[]): Script {
   );
 
   // sign with both priv keys
-  const multisigScript = base.createDualMultisigScript([
-    serverPriv.toPublicKey(),
-    clientPriv.toPublicKey(),
-  ]);
+  // const multisigScript = base.createDualMultisigScript([
+  //   serverPriv.toPublicKey(),
+  //   clientPriv.toPublicKey(),
+  // ]);
 
-  // prepare source output
-  if (!res2.tx.inputs[0].sourceTransaction) {
-    res2.tx.inputs[0].sourceTransaction = new Transaction();
-    res2.tx.inputs[0].sourceTransaction!.outputs = [];
-  }
-  res2.tx.inputs[0].sourceTransaction!.outputs[0] = {
-    satoshis: res1.amount,
-    lockingScript: multisigScript as any,
-  } as any;
+  // // prepare source output
+  // if (!res2.tx.inputs[0].sourceTransaction) {
+  //   res2.tx.inputs[0].sourceTransaction = new Transaction();
+  //   res2.tx.inputs[0].sourceTransaction!.outputs = [];
+  // }
+  // res2.tx.inputs[0].sourceTransaction!.outputs[0] = {
+  //   satoshis: res1.amount,
+  //   lockingScript: multisigScript as any,
+  // } as any;
 
-  const scope = TransactionSignature.SIGHASH_ALL | TransactionSignature.SIGHASH_FORKID;
-  const sighashData = TransactionSignature.format({
-    sourceTXID: res2.tx.inputs[0].sourceTXID || '',
-    sourceOutputIndex: res2.tx.inputs[0].sourceOutputIndex,
-    sourceSatoshis: res1.amount,
-    transactionVersion: res2.tx.version,
-    otherInputs: [],
-    outputs: res2.tx.outputs,
-    inputIndex: 0,
-    subscript: multisigScript,
-    inputSequence: res2.tx.inputs[0].sequence || 1,
-    lockTime: res2.tx.lockTime,
-    scope,
-  });
+  // const scope = TransactionSignature.SIGHASH_ALL | TransactionSignature.SIGHASH_FORKID;
+  // const sighashData = TransactionSignature.format({
+  //   sourceTXID: res2.tx.inputs[0].sourceTXID || '',
+  //   sourceOutputIndex: res2.tx.inputs[0].sourceOutputIndex,
+  //   sourceSatoshis: res1.amount,
+  //   transactionVersion: res2.tx.version,
+  //   otherInputs: [],
+  //   outputs: res2.tx.outputs,
+  //   inputIndex: 0,
+  //   subscript: multisigScript,
+  //   inputSequence: res2.tx.inputs[0].sequence || 1,
+  //   lockTime: res2.tx.lockTime,
+  //   scope,
+  // });
 
-  console.log('TS sighash:', Buffer.from(sighashData).toString('hex'));
+  // console.log('TS sighash:', Buffer.from(sighashData).toString('hex'));
 
-  const msgHash = hash256(sighashData);
-  console.log('TS sighash32:', msgHash.toString('hex'));
-  const bnHash = new BigNumber(Buffer.from(msgHash).toString('hex'), 16);
-  const sigServerObj = ECDSA.sign(bnHash, serverPriv, true);
-  const sigServer = sigServerObj.toDER() as number[];
-  sigServer.push(scope);
-  const sigClientObj = ECDSA.sign(bnHash, clientPriv, true);
-  const sigClient = sigClientObj.toDER() as number[];
-  sigClient.push(scope);
+  // const msgHash = hash256(sighashData);
+  // console.log('TS sighash32:', msgHash.toString('hex'));
+  // const bnHash = new BigNumber(Buffer.from(msgHash).toString('hex'), 16);
+  // const sigServerObj = ECDSA.sign(bnHash, serverPriv, true);
+  // const sigServer = sigServerObj.toDER() as number[];
+  // sigServer.push(scope);
+  // const sigClientObj = ECDSA.sign(bnHash, clientPriv, true);
+  // const sigClient = sigClientObj.toDER() as number[];
+  // sigClient.push(scope);
 
-  const unlockScript = createUnlockScript(sigServer, sigClient);
-  res2.tx.inputs[0].unlockingScript!.chunks = unlockScript.chunks;
+  // const unlockScript = createUnlockScript(sigServer, sigClient);
+  // res2.tx.inputs[0].unlockingScript!.chunks = unlockScript.chunks;
 
   console.log('Step1Hex:', res1.tx.toHex());
   console.log('Step2Hex:', res2.tx.toHex());
