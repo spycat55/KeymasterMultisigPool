@@ -7,7 +7,7 @@ const secp256k1Gx = BigInt('0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959
 const secp256k1Gy = BigInt('0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8')
 
 function hmacSHA256(key: Buffer, data: Buffer): Buffer {
-  return createHmac('sha256', key).update(data).digest()
+  return createHmac('sha256', key).update(data).digest() as Buffer
 }
 
 function int2octets(x: bigint): Buffer {
@@ -109,24 +109,24 @@ export function generateKGoStyle(privKey: Buffer, hash: Buffer): bigint {
     throw new Error('hash must be 32 bytes')
   }
 
-  let v = Buffer.alloc(32, 0x01)
-  let k = Buffer.alloc(32, 0x00)
+  let v: Buffer = Buffer.alloc(32, 0x01)
+  let k: Buffer = Buffer.alloc(32, 0x00)
 
   const bx = Buffer.concat([privKey, bits2octets(hash)])
 
-  k = hmacSHA256(k, Buffer.concat([v, Buffer.from([0x00]), bx]))
-  v = hmacSHA256(k, v)
-  k = hmacSHA256(k, Buffer.concat([v, Buffer.from([0x01]), bx]))
-  v = hmacSHA256(k, v)
+  k = hmacSHA256(k, Buffer.concat([v, Buffer.from([0x00]), bx])) as Buffer
+  v = hmacSHA256(k, v) as Buffer
+  k = hmacSHA256(k, Buffer.concat([v, Buffer.from([0x01]), bx])) as Buffer
+  v = hmacSHA256(k, v) as Buffer
 
   while (true) {
-    v = hmacSHA256(k, v)
+    v = hmacSHA256(k, v) as Buffer
     const candidate = BigInt('0x' + v.toString('hex'))
     if (candidate > 0n && candidate < secp256k1N) {
       return candidate
     }
-    k = hmacSHA256(k, Buffer.concat([v, Buffer.from([0x00])]))
-    v = hmacSHA256(k, v)
+    k = hmacSHA256(k, Buffer.concat([v, Buffer.from([0x00])])) as Buffer
+    v = hmacSHA256(k, v) as Buffer
   }
 }
 
