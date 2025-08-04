@@ -238,8 +238,8 @@ func main() {
 	fmt.Println("STEP 5: Client1 Update Sign (Adjust Client1-Client2 Distribution)")
 	fmt.Println(strings.Repeat("=", 60))
 
-	const newClient1Amount uint64 = 150000 // Client1 获得更多金额
-	const newSequenceNumber uint32 = 2     // 修改序列号
+	const newClient1Amount uint64 = 1500 // Client1 获得更多金额
+	const newSequenceNumber uint32 = 2   // 修改序列号
 
 	updatedTx, err := te.TripleFeePoolLoadTx(bTx.String(), nil, newSequenceNumber, newClient1Amount,
 		serverPriv.PubKey(), client1Priv.PubKey(), client2Priv.PubKey(), res1.Amount)
