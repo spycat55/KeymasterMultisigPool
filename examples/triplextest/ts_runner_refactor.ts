@@ -11,6 +11,9 @@ import {
   tripleBuildFeePoolBaseTx,
   tripleBuildFeePoolSpendTX,
   tripleSpendTXFeePoolBSign,
+  tripleFeePoolLoadTx,
+  tripleClientAFeePoolSpendTXUpdateSign,
+  tripleClientBFeePoolSpendTXUpdateSign,
 } from '../../src/triple_endpoint';
 
 interface FixtureUTXO {
@@ -74,7 +77,7 @@ function loadFixture(): Fixture {
   const spendTx = spendResp.tx;
   const clientSig = spendResp.clientSignBytes;
 
-  console.log('Step2Hex:', spendTx.toHex());
+  // console.log('Step2Hex:', spendTx.toHex());
 
   /* ------------------------------------------------------------------
    * Step-3  Server adds its signature
@@ -91,8 +94,52 @@ function loadFixture(): Fixture {
   );
 
   // Combine signatures into final unlocking script
-  const unlockingScript = MultiSig.buildSignScript([clientSig, serverSig]);
-  (spendTx.inputs[0] as any).unlockingScript = unlockingScript as unknown as Script;
+  // const unlockingScript = MultiSig.buildSignScript([clientSig, serverSig]);
+  // (spendTx.inputs[0] as any).unlockingScript = unlockingScript as unknown as Script;
 
-  console.log('Step3Hex:', spendTx.toHex());
+  // console.log('Step3Hex:', spendTx.toHex());
+
+  // Output signatures for comparison (matching Go format)
+  console.log('ClientSig:', Buffer.from(clientSig).toString('hex'));
+  console.log('ServerSig:', Buffer.from(serverSig).toString('hex'));
+
+  /* ------------------------------------------------------------------
+   * Step-4  Client update and re-sign (modify amounts and sequence)
+   * ------------------------------------------------------------------ */
+  const newServerAmount = 150; // 修改服务器金额
+  const newSequenceNumber = 2; // 修改序列号
+
+  // Load and update the transaction
+  const updatedTx = await tripleFeePoolLoadTx(
+    spendTx,
+    serverPriv.toPublicKey(),
+    clientPriv.toPublicKey(),
+    escrowPriv.toPublicKey(),
+    poolValue,
+    undefined, // locktime
+    newSequenceNumber,
+    newServerAmount
+  );
+
+  // Client update signature
+  const clientUpdateSig = await tripleClientAFeePoolSpendTXUpdateSign(
+    updatedTx,
+    serverPriv.toPublicKey(),
+    clientPriv,
+    escrowPriv.toPublicKey()
+  );
+
+  console.log('ClientUpdateSig:', Buffer.from(clientUpdateSig).toString('hex'));
+
+  /* ------------------------------------------------------------------
+   * Step-5  Server update sign
+   * ------------------------------------------------------------------ */
+  const serverUpdateSig = await tripleClientBFeePoolSpendTXUpdateSign(
+    updatedTx,
+    serverPriv.toPublicKey(),
+    clientPriv.toPublicKey(),
+    escrowPriv // server acts as B party
+  );
+
+  console.log('ServerUpdateSig:', Buffer.from(serverUpdateSig).toString('hex'));
 })();
