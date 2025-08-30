@@ -27,10 +27,15 @@ async function main() {
   const serverPriv = PrivateKey.fromHex(fixture.serverPrivHex);
 
   // Step-1
+  // Calculate feepoolAmount: use total inputs - small buffer for fees
+  const totalValue = fixture.clientUtxos.reduce((sum, utxo) => sum + utxo.satoshis, 0);
+  const feepoolAmount = totalValue > 500 ? totalValue - 500 : totalValue;
+
   const res1 = await buildDualFeePoolBaseTx(
     fixture.clientUtxos,
     clientPriv,
     serverPriv.toPublicKey(),
+    feepoolAmount,
     fixture.feeRate,
   );
 
@@ -38,6 +43,7 @@ async function main() {
   const res2 = await buildDualFeePoolSpendTX(
     res1.tx,
     res1.amount,
+    100, // server amount (hardcoded like Go version)
     fixture.endHeight,
     clientPriv,
     serverPriv.toPublicKey(),
