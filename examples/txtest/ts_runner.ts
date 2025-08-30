@@ -43,10 +43,23 @@ function createUnlockScript(sigServer: number[], sigClient: number[]): Script {
   const serverPriv = PrivateKey.fromHex(f.serverPrivHex);
 
   // Step1
+  // compute feepoolAmount from fixture utxos - keep small buffer
+  let total = 0;
+  for (const u of f.clientUtxos) {
+    total += u.satoshis;
+  }
+  let feepoolAmount = 0;
+  if (total > 500) {
+    feepoolAmount = total - 500;
+  } else {
+    feepoolAmount = total;
+  }
+
   const res1 = await buildDualFeePoolBaseTx(
     f.clientUtxos,
     clientPriv,
     serverPriv.toPublicKey(),
+    feepoolAmount,
     f.feeRate,
   );
 
