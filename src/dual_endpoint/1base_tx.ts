@@ -103,12 +103,15 @@ import UnlockingScript from '@bsv/sdk/script/UnlockingScript';
 	 * @param clientUtxos 客户端 UTXO 列表（发起者提供的金额就是这些 UTXO 的全额）
 	 * @param clientPrivateKey 客户端私钥
 	 * @param serverPublicKey 服务器公钥
+	 * @param feepoolAmount 费用池金额
+	 * @param feeRate 费率（sat/byte）
 	 * @returns 构建的交易、金额和输出索引
 	 */
 	export async function buildDualFeePoolBaseTx(
 		clientUtxos: UTXO[],
 		clientPrivateKey: PrivateKey,
 		serverPublicKey: PublicKey,
+		feepoolAmount: number,
 		feeRate: number,
 	): Promise<BuildDualFeePoolBaseTxResponse> {
 		// 检查输入参数
@@ -143,12 +146,26 @@ import UnlockingScript from '@bsv/sdk/script/UnlockingScript';
 		// 创建 2-of-2 多签输出脚本
 		const multisigScript = createDualMultisigScript([serverPublicKey, clientPublicKey]);
 
-		// 添加多签输出
+		if (totalValue < feepoolAmount) {
+			throw new Error(`余额不足，费用池金额 ${feepoolAmount}，拥有 ${totalValue}`);
+		}
+
+		// 添加主输出（费用池）
 		const multisigLockingScript = new LockingScript();
 		multisigLockingScript.chunks = multisigScript.chunks;
 		tx.addOutput({
 			lockingScript: multisigLockingScript,
-			satoshis: totalValue // 初始设置为总金额，后续会减去手续费
+			satoshis: feepoolAmount
+		});
+
+		// 添加找零输出（先不扣手续费，用于估算大小）
+		const changeLockingScript = new LockingScript();
+		const sourceP2PKH = await createP2PKHScript(clientAddress);
+		changeLockingScript.chunks = sourceP2PKH.chunks;
+		const initialChange = Math.max(0, totalValue - feepoolAmount);
+		tx.addOutput({
+			lockingScript: changeLockingScript,
+			satoshis: initialChange
 		});
 
 		// 为每个输入创建签名，以便正确估计交易大小
@@ -223,12 +240,12 @@ import UnlockingScript from '@bsv/sdk/script/UnlockingScript';
 		console.log(`交易大小: ${txSize} bytes`);
 		console.log(`计算手续费: ${fee} satoshis (费率: ${feeRate} sat/byte)`);
 
-		if (totalValue < fee) {
-			throw new Error(`余额不足，需要手续费 ${fee}，拥有 ${totalValue}`);
+		if (totalValue < feepoolAmount + fee) {
+			throw new Error(`余额不足，需要 费用池 ${feepoolAmount} + 手续费 ${fee}，拥有 ${totalValue}`);
 		}
 
-		// 更新输出金额，减去手续费
-		tx.outputs[0].satoshis = totalValue - fee;
+		// 更新找零金额：总额 - 费用池 - 手续费
+		tx.outputs[1].satoshis = totalValue - feepoolAmount - fee;
 
 		// 重新签名所有输入（因为输出金额变化了）
 		for (let i = 0; i < tx.inputs.length; i++) {
@@ -271,7 +288,7 @@ import UnlockingScript from '@bsv/sdk/script/UnlockingScript';
 			tx.inputs[i].unlockingScript!.chunks = p2pkhScript.chunks;
 		}
 
-		const finalAmount = totalValue - fee;
+		const finalAmount = feepoolAmount;
 
 		console.log('双端费用池基础交易构建完成');
 		console.log(`交易ID: ${tx.id('hex')}`);
@@ -281,7 +298,7 @@ import UnlockingScript from '@bsv/sdk/script/UnlockingScript';
 		return {
 			tx,
 			amount: finalAmount,
-			index: 0 // 多签输出的索引
+			index: 0 // 多签输出的索引（费用池）
 		};
 	}
 

@@ -161,13 +161,24 @@ func main() {
 	fmt.Println("STEP 1: Creating Base Transaction (Client UTXO -> Multisig)")
 	fmt.Println(strings.Repeat("=", 60))
 
-	res1, err := ce.BuildDualFeePoolBaseTx(&clientUTXOs, clientPriv, serverPriv.PubKey(), false, FEE_RATE)
+	// compute feepoolAmount based on discovered utxos
+	var total uint64
+	for _, u := range clientUTXOs {
+		total += u.Value
+	}
+	var feepoolAmount uint64
+	if total > 500 {
+		feepoolAmount = total - 500
+	} else {
+		feepoolAmount = total
+	}
+	res1, err := ce.BuildDualFeePoolBaseTx(&clientUTXOs, feepoolAmount, clientPriv, serverPriv.PubKey(), false, FEE_RATE)
 	if err != nil {
 		log.Fatalf("Step 1 failed: %v", err)
 	}
 
 	displayTransaction("STEP 1 - BASE TRANSACTION", res1.Tx.String(),
-		fmt.Sprintf("Converts client UTXOs to 2-of-2 multisig output\nMultisig Amount: %d satoshis", res1.Amount))
+		fmt.Sprintf("Converts client UTXOs to 2-of-2 multisig output\nMultisig Amount: %d satoshis", feepoolAmount))
 
 	// Step 2: 客户端签名花费交易
 	fmt.Println("\n" + strings.Repeat("=", 60))

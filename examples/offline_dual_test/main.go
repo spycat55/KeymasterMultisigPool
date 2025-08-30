@@ -87,7 +87,18 @@ func main() {
 	// Step 1: 创建基础多签交易
 	fmt.Println("=== Step 1: Base Transaction ===")
 	clientUTXOs := []libs.UTXO{FIXED_UTXO}
-	res1, err := ce.BuildDualFeePoolBaseTx(&clientUTXOs, clientPriv, serverPriv.PubKey(), false, FEE_RATE)
+	// compute feepoolAmount from inputs - keep small buffer for fees
+	var total uint64
+	for _, u := range clientUTXOs {
+		total += u.Value
+	}
+	var feepoolAmount uint64
+	if total > 500 {
+		feepoolAmount = total - 500
+	} else {
+		feepoolAmount = total
+	}
+	res1, err := ce.BuildDualFeePoolBaseTx(&clientUTXOs, feepoolAmount, clientPriv, serverPriv.PubKey(), false, FEE_RATE)
 	if err != nil {
 		log.Fatalf("Step 1 failed: %v", err)
 	}

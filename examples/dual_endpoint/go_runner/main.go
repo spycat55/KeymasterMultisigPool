@@ -80,7 +80,18 @@ func main() {
 	}
 
 	// Step 1
-	res1, err := ce.BuildDualFeePoolBaseTx(&f.ClientUtxos, clientPriv, serverPriv.PubKey(), f.IsMain, f.FeeRate)
+	// compute feepoolAmount: use total inputs - small buffer for fees
+	var total uint64
+	for _, u := range f.ClientUtxos {
+		total += u.Value
+	}
+	var feepoolAmount uint64
+	if total > 500 {
+		feepoolAmount = total - 500
+	} else {
+		feepoolAmount = total
+	}
+	res1, err := ce.BuildDualFeePoolBaseTx(&f.ClientUtxos, feepoolAmount, clientPriv, serverPriv.PubKey(), f.IsMain, f.FeeRate)
 	if err != nil {
 		log.Fatalf("step1: %v", err)
 	}

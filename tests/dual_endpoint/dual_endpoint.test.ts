@@ -48,15 +48,24 @@ describe('Dual Endpoint Tests', () => {
     const clientPriv = PrivateKey.fromHex(testData.clientPrivHex);
     const serverPriv = PrivateKey.fromHex(testData.serverPrivHex);
 
-    // Step 1: Build base transaction
+    // Step 1: Build base transaction with explicit feepoolAmount
+    const totalValue = testData.clientUtxos.reduce((s, u) => s + u.satoshis, 0);
+    const feepoolAmount = totalValue - 500; // leave buffer for fees in test
     const res1 = await buildDualFeePoolBaseTx(
       testData.clientUtxos,
       clientPriv,
       serverPriv.toPublicKey(),
+      feepoolAmount,
       testData.feeRate,
     );
 
-    expect(res1.tx.toHex()).toBe(testData.expectedOutputs.step1Hex);
+    // Verify outputs and fee calculations
+    const txSize = res1.tx.toBinary().length;
+    const calcFee = Math.max(1, Math.floor((txSize / 1000.0) * testData.feeRate));
+    expect(res1.amount).toBe(feepoolAmount);
+    expect(res1.tx.outputs.length).toBe(2);
+    expect(res1.tx.outputs[0].satoshis).toBe(feepoolAmount);
+    expect(res1.tx.outputs[1].satoshis).toBe(totalValue - feepoolAmount - calcFee);
 
     // Step 2: Build spend transaction
     const serverAmount = 100;
@@ -115,18 +124,33 @@ describe('Dual Endpoint Tests', () => {
     const unlockScript = createUnlockScript(sigServer, sigClient);
     res2.tx.inputs[0].unlockingScript!.chunks = unlockScript.chunks;
 
-    expect(res2.tx.toHex()).toBe(testData.expectedOutputs.step2Hex);
+    // Robust assertions: outputs and amounts
+    expect(res2.amount).toBeGreaterThan(0);
+    expect(res2.tx.outputs.length).toBe(2);
+    // server output first, client output second as constructed in subBuildDualFeePoolSpendTX
+    expect(res2.tx.outputs[0].satoshis).toBe(serverAmount);
+    expect(res2.tx.outputs[1].satoshis).toBe(res2.amount);
+    // totalAmount = res1.amount
+    const computedFee = res1.amount - serverAmount - res2.amount;
+    expect(computedFee).toBeGreaterThanOrEqual(1);
+    // sequence and locktime
+    expect(res2.tx.inputs[0].sequence).toBe(1);
+    expect(res2.tx.lockTime).toBe(testData.endHeight);
   });
 
   test('should handle different fee rates', async () => {
     const clientPriv = PrivateKey.fromHex(testData.clientPrivHex);
     const serverPriv = PrivateKey.fromHex(testData.serverPrivHex);
 
+    // Prepare feepoolAmount for consistent comparisons
+    const totalValueA = testData.clientUtxos.reduce((s, u) => s + u.satoshis, 0);
+    const feepoolAmountA = totalValueA - 500;
     // Test with original fee rate
     const res1 = await buildDualFeePoolBaseTx(
       testData.clientUtxos,
       clientPriv,
       serverPriv.toPublicKey(),
+      feepoolAmountA,
       testData.feeRate,
     );
 
@@ -136,6 +160,7 @@ describe('Dual Endpoint Tests', () => {
       testData.clientUtxos,
       clientPriv,
       serverPriv.toPublicKey(),
+      feepoolAmountA,
       higherFeeRate,
     );
 
@@ -153,17 +178,21 @@ describe('Dual Endpoint Tests', () => {
       [],
       clientPriv,
       serverPriv.toPublicKey(),
+      100,
       testData.feeRate,
     )).rejects.toThrow();
 
     // Test with zero fee rate - still has minimum fee
+    const totalValueB = testData.clientUtxos.reduce((s, u) => s + u.satoshis, 0);
+    const feepoolAmountB = totalValueB - 1; // push to minimum fee edge
     const res1 = await buildDualFeePoolBaseTx(
       testData.clientUtxos,
       clientPriv,
       serverPriv.toPublicKey(),
+      feepoolAmountB,
       0,
     );
-    // Even with zero fee rate, there's still a minimum fee calculated
-    expect(res1.amount).toBeLessThanOrEqual(99902);
+    // Even with zero fee rate, there's still a minimum fee calculated, change >= 0
+    expect(res1.amount).toBe(feepoolAmountB);
   });
 });

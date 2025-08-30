@@ -76,7 +76,18 @@ func main() {
 	serverPriv, _ := ec.PrivateKeyFromHex(f.ServerPrivHex)
 
 	// Step1 Base tx
-	res1, err := ce.BuildDualFeePoolBaseTx(&f.ClientUtxos, clientPriv, serverPriv.PubKey(), f.IsMain, f.FeeRate)
+	// compute feepoolAmount from fixture utxos - keep small buffer
+	var total uint64
+	for _, u := range f.ClientUtxos {
+		total += u.Value
+	}
+	var feepoolAmount uint64
+	if total > 500 {
+		feepoolAmount = total - 500
+	} else {
+		feepoolAmount = total
+	}
+	res1, err := ce.BuildDualFeePoolBaseTx(&f.ClientUtxos, feepoolAmount, clientPriv, serverPriv.PubKey(), f.IsMain, f.FeeRate)
 	if err != nil {
 		log.Fatalf("step1: %v", err)
 	}

@@ -9,6 +9,8 @@ import OP from '@bsv/sdk/script/OP';
 
 const FEE_RATE = 0.5;
 const END_HEIGHT = 1687365;
+// 费用池金额（整数 satoshis）。注意：buildDualFeePoolBaseTx 的第4个参数是 feepoolAmount。
+const FEEPOOL_AMOUNT = 200000;
 
 // 固定的测试数据
 const CLIENT_PRIV_HEX = "2796e78fad7d383fa5236607eba52d9a1904325daf9b4da3d77be5ad15ab1dae";
@@ -85,6 +87,7 @@ function assertEqual(name: string, expected: string, actual: string): boolean {
     clientUTXOs,
     clientPriv,
     serverPriv.toPublicKey(),
+    FEEPOOL_AMOUNT,
     FEE_RATE,
   );
 

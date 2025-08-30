@@ -28,7 +28,7 @@ type BuildStep1Response struct {
 // p2pkh to 2t2多签, 不找零
 func BuildDualFeePoolBaseTx(
 	clientUtxo *[]libs.UTXO, // 发起者 utxos, 我提供的金额就是这个 utxo 的全额
-	// serverValue uint64, // 服务器提供金额
+	feepoolAmount uint64, // 费用池金额（主输出金额）
 	clientPrivateKey *ec.PrivateKey,
 	serverPublicKey *ec.PublicKey,
 	isMain bool,
@@ -80,9 +80,9 @@ func BuildDualFeePoolBaseTx(
 		totalValue += cUtxo.Value
 	}
 
-	// if totalValue < serverValue {
-	// 	return nil, fmt.Errorf("not enough balance, need %d, have %d", serverValue, totalValue)
-	// }
+	if totalValue < feepoolAmount {
+		return nil, fmt.Errorf("not enough balance for feepoolAmount: need %d, have %d", feepoolAmount, totalValue)
+	}
 
 	// 创建初始交易的锁定脚本
 	outputMultisigScript, err := libs.Lock([]*ec.PublicKey{serverPublicKey, clientPublicKey}, 2)
@@ -90,23 +90,25 @@ func BuildDualFeePoolBaseTx(
 		return nil, fmt.Errorf("failed to create server locking script: %w", err)
 	}
 
-	// 添加服务器输出
+	// 添加主输出（费用池多签）
 	transactionData.AddOutput(&tx.TransactionOutput{
-		Satoshis:      totalValue,
+		Satoshis:      feepoolAmount,
 		LockingScript: outputMultisigScript,
 	})
 
-	// 找零脚本
-	// changeScript, err := p2pkh.Lock(clientAddress)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to create change locking script: %w", err)
-	// }
-
-	// // 预先加入
-	// transactionData.AddOutput(&tx.TransactionOutput{
-	// 	Satoshis:      totalValue - serverValue,
-	// 	LockingScript: changeScript,
-	// })
+	// 初始找零脚本（金额先不扣手续费，用于估算大小）
+	changeScript, err := p2pkh.Lock(clientAddress)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create change locking script: %w", err)
+	}
+	initialChange := uint64(0)
+	if totalValue > feepoolAmount {
+		initialChange = totalValue - feepoolAmount
+	}
+	transactionData.AddOutput(&tx.TransactionOutput{
+		Satoshis:      initialChange,
+		LockingScript: changeScript,
+	})
 
 	// 为每个输入签名，以便正确估计交易大小
 	for i := range transactionData.Inputs {
@@ -124,20 +126,13 @@ func BuildDualFeePoolBaseTx(
 		fee = 1
 	}
 
-	// fmt.Printf("fee: %d, txSize: %d, feeRate: %f\n", fee, txSize, c.feeRate)
-	// c.Logger.Debug("fee", zap.Int64("fee", int64(fee)), zap.Int64("txSize", int64(txSize)), zap.Float64("feeRate", c.feeRate))
-
-	// if totalValue < serverValue+fee {
-	// 	return nil, fmt.Errorf("not enough balance, need %d, have %d", serverValue+fee, totalValue)
-	// }
-
 	// 检查是否有足够的余额支付手续费
-	if totalValue < fee {
-		return nil, fmt.Errorf("not enough balance for fee: need %d, have %d", fee, totalValue)
+	if totalValue < feepoolAmount+fee {
+		return nil, fmt.Errorf("not enough balance: need %d (feepool + fee), have %d", feepoolAmount+fee, totalValue)
 	}
 
-	// 更新找零输出
-	transactionData.Outputs[0].Satoshis = totalValue - fee
+	// 更新找零输出：总额 - feepoolAmount - 手续费
+	transactionData.Outputs[1].Satoshis = totalValue - feepoolAmount - fee
 
 	// 重新签名
 	for i := range transactionData.Inputs {
@@ -148,7 +143,7 @@ func BuildDualFeePoolBaseTx(
 		transactionData.Inputs[i].UnlockingScript = unlockingScript
 	}
 
-	finalAmount := totalValue - fee
+	finalAmount := feepoolAmount
 
 	return &BuildStep1Response{
 		Tx:     transactionData,
