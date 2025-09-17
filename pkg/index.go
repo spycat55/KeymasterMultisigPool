@@ -9,7 +9,7 @@ import (
 )
 
 // Version of the KeymasterMultisigPool library
-const Version = "1.4.0"
+const Version = "1.5.0"
 
 // Re-export multisig types and functions
 type MultiSig = libs.MultiSig
