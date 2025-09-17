@@ -71,7 +71,7 @@ func main() {
 		return
 	}
 
-	tsStep1, tsClientSig, tsServerSig, tsClientUpdateSig, tsServerUpdateSig, err := capture(exec.Command("bun", "run", "examples/triplextest/ts_runner_refactor.ts"))
+	tsStep1, tsClientSig, tsServerSig, tsClientUpdateSig, tsServerUpdateSig, err := capture(exec.Command("npx", "tsx", "examples/triplextest/ts_runner_refactor.ts"))
 	if err != nil {
 		fmt.Printf("❌ TypeScript runner failed: %v\n", err)
 		return

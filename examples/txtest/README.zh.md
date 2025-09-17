@@ -14,8 +14,8 @@
 ## 前置条件
 
 * Go 1.20+
-* [Bun](https://bun.sh/) ≥ 1.0（用于运行 TypeScript）
-* 已安装 Node 依赖项（在项目根目录执行 `bun install`）
+* Node.js 18+（依赖内置 `tsx`，可通过 `npx tsx` 直接运行 TypeScript）
+* 已安装 Node 依赖项（在项目根目录执行 `npm install`）
 
 ## 运行测试
 
@@ -23,7 +23,7 @@
 
 ```bash
 # 1. 生成 TS 交易（可选 - 调试时很有用）
-bun run examples/txtest/ts_runner.ts
+npx tsx examples/txtest/ts_runner.ts
 
 # 2. 生成 Go 交易（可选）
 go run examples/txtest/go_runner/main.go

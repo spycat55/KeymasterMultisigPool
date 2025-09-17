@@ -38,7 +38,7 @@ func main() {
 	fmt.Println("Go Step4Hex", goHex[3])
 	fmt.Println("Go Step5Hex", goHex[4])
 
-	tsHex, err := capture(exec.Command("bun", "run", "examples/txtest/ts_runner.ts"))
+	tsHex, err := capture(exec.Command("npx", "tsx", "examples/txtest/ts_runner.ts"))
 	if err != nil {
 		fmt.Printf("Run ts_runner failed: %v\n", err)
 		return

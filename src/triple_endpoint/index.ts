@@ -25,6 +25,8 @@ export * from './3server_sign';
 export * from './4client_spend_tx_update';
 export * from './5server_sign_update';
 export * from './0script';
+// Verification helpers (non-breaking additions)
+export * from './6verify';
 
 
 // 重新导出类型定义

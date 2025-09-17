@@ -9,7 +9,7 @@
 go run examples/offline_dual_test/main.go
 
 # TypeScript 版本
-bun run examples/offline_dual_test/main.ts
+npx tsx examples/offline_dual_test/main.ts
 ```
 
 ## 说明

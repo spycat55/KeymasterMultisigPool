@@ -111,3 +111,4 @@ public
 # 临时的，不要提交，正确应该屏蔽
 references/
 node_modules/
+.gocache

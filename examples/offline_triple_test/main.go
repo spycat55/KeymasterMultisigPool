@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
+	ec "github.com/bsv-blockchain/go-sdk/primitives/ec"
 	libs "github.com/spycat55/KeymasterMultisigPool/pkg/libs"
 	te "github.com/spycat55/KeymasterMultisigPool/pkg/triple_endpoint"
-
-	ec "github.com/bsv-blockchain/go-sdk/primitives/ec"
 )
 
 // TestConfig holds all test parameters
@@ -35,70 +36,70 @@ type TestConfig struct {
 
 // loadTestConfig loads configuration from test_config.json and expected_outputs.json
 func loadTestConfig() (*TestConfig, error) {
-	// Load test configuration
-	configData, err := ioutil.ReadFile("test_config.json")
+	_, thisFile, _, ok := runtime.Caller(0)
+	if !ok {
+		return nil, fmt.Errorf("Failed to resolve configuration path")
+	}
+	baseDir := filepath.Dir(thisFile)
+
+	configData, err := ioutil.ReadFile(filepath.Join(baseDir, "test_config.json"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to read test_config.json: %v", err)
+		return nil, fmt.Errorf("Failed to read test_config.json: %w", err)
 	}
 
 	var config TestConfig
 	if err := json.Unmarshal(configData, &config); err != nil {
-		return nil, fmt.Errorf("failed to parse test_config.json: %v", err)
+		return nil, fmt.Errorf("Failed to parse test_config.json: %w", err)
 	}
 
-	// Load expected outputs
-	expectedData, err := ioutil.ReadFile("expected_outputs.json")
+	expectedData, err := ioutil.ReadFile(filepath.Join(baseDir, "expected_outputs.json"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to read expected_outputs.json: %v", err)
+		return nil, fmt.Errorf("Failed to read expected_outputs.json: %w", err)
 	}
 
 	var expectedOutputs map[string]string
 	if err := json.Unmarshal(expectedData, &expectedOutputs); err != nil {
-		return nil, fmt.Errorf("failed to parse expected_outputs.json: %v", err)
+		return nil, fmt.Errorf("Failed to parse expected_outputs.json: %w", err)
 	}
 
 	config.ExpectedOutputs = expectedOutputs
-
 	return &config, nil
 }
 
-func TestTripleEndpointFixedUTXO(t *testing.T) {
-	// Load test configuration
+func runTripleEndpointFixedUTXO() error {
 	config, err := loadTestConfig()
 	if err != nil {
-		t.Fatalf("Failed to load test config: %v", err)
+		return err
 	}
 
-	// Initialize private keys
 	client1Priv, err := ec.PrivateKeyFromHex(config.Client1PrivHex)
 	if err != nil {
-		t.Fatalf("Invalid client1 private key: %v", err)
+		return fmt.Errorf("Invalid client1 private key: %w", err)
 	}
 
 	client2Priv, err := ec.PrivateKeyFromHex(config.Client2PrivHex)
 	if err != nil {
-		t.Fatalf("Invalid client2 private key: %v", err)
+		return fmt.Errorf("Invalid client2 private key: %w", err)
 	}
 
 	serverPriv, err := ec.PrivateKeyFromHex(config.ServerPrivHex)
 	if err != nil {
-		t.Fatalf("Invalid server private key: %v", err)
+		return fmt.Errorf("Invalid server private key: %w", err)
 	}
 
-	// Get addresses
-	client1Address, err := libs.GetAddressFromPublicKey(client1Priv.PubKey(), false) // testnet
+	client1Address, err := libs.GetAddressFromPublicKey(client1Priv.PubKey(), false)
 	if err != nil {
-		t.Fatalf("Failed to get client1 address: %v", err)
+		return fmt.Errorf("Failed to get client1 address: %w", err)
 	}
 
-	client2Address, err := libs.GetAddressFromPublicKey(client2Priv.PubKey(), false) // testnet
+	client2Address, err := libs.GetAddressFromPublicKey(client2Priv.PubKey(), false)
 	if err != nil {
-		t.Fatalf("Failed to get client2 address: %v", err)
+		return fmt.Errorf("Failed to get client2 address: %w", err)
 	}
 
-	serverAddress, err := libs.GetAddressFromPublicKey(serverPriv.PubKey(), false) // testnet
+	serverAddress, err := libs.GetAddressFromPublicKey(serverPriv.PubKey(), false)
 	if err != nil {
-		t.Fatalf("Failed to get server address: %v", err)
+		return fmt.Errorf("Failed to get server address: %w", err)
 	}
 
 	fmt.Printf("Client1 Private Key: %s\n", config.Client1PrivHex)
@@ -110,25 +111,26 @@ func TestTripleEndpointFixedUTXO(t *testing.T) {
 	fmt.Printf("Current Block Height: 1687373\n")
 	fmt.Printf("End Height: %d\n", config.EndHeight)
 
-	// Use fixed UTXO from config
 	fixedUTXO := libs.UTXO{
 		TxID:  config.FixedUTXO.TxID,
 		Vout:  config.FixedUTXO.Vout,
 		Value: config.FixedUTXO.Value,
 	}
 	client1UTXOs := []libs.UTXO{fixedUTXO}
+
 	fmt.Printf("\nFound 1 UTXOs for client1:\n")
 	fmt.Printf("UTXO 0: %s:%d (%d satoshis)\n", fixedUTXO.TxID, fixedUTXO.Vout, fixedUTXO.Value)
 	fmt.Printf("Total Value: %d satoshis\n", fixedUTXO.Value)
 
-	// Step 1: Create base transaction
+	mismatches := make([]string, 0)
+
 	fmt.Println("\n" + strings.Repeat("=", 60))
 	fmt.Println("STEP 1: Creating Base Transaction (Client1 UTXO -> Triple Multisig)")
 	fmt.Println(strings.Repeat("=", 60))
 
 	res1, err := te.BuildTripleFeePoolBaseTx(&client1UTXOs, serverPriv.PubKey(), client1Priv, client2Priv.PubKey(), false, config.FeeRate)
 	if err != nil {
-		t.Fatalf("Step 1 failed: %v", err)
+		return fmt.Errorf("Step 1 failed: %w", err)
 	}
 
 	baseTxHex := res1.Tx.String()
@@ -138,12 +140,10 @@ func TestTripleEndpointFixedUTXO(t *testing.T) {
 	fmt.Printf("Length: %d bytes\n", len(baseTxHex)/2)
 	fmt.Println("---")
 
-	// Verify base transaction (if expected output exists)
 	if expected, exists := config.ExpectedOutputs["base_tx"]; exists && baseTxHex != expected {
-		t.Errorf("Base transaction mismatch.\nExpected: %s\nGot:      %s", expected, baseTxHex)
+		mismatches = append(mismatches, fmt.Sprintf("Base transaction mismatch.\nExpected: %s\nGot:      %s", expected, baseTxHex))
 	}
 
-	// Step 2: Build spend transaction
 	fmt.Println("\n" + strings.Repeat("=", 60))
 	fmt.Println("STEP 2: Build Spend Transaction (Client1 -> Client2, Server as Arbitrator)")
 	fmt.Println(strings.Repeat("=", 60))
@@ -151,7 +151,7 @@ func TestTripleEndpointFixedUTXO(t *testing.T) {
 	bTx, client1SignBytes, client1Amount, err := te.BuildTripleFeePoolSpendTX(
 		res1.Tx, res1.Amount, config.EndHeight, serverPriv.PubKey(), client1Priv, client2Priv.PubKey(), false, config.FeeRate)
 	if err != nil {
-		t.Fatalf("Step 2 failed: %v", err)
+		return fmt.Errorf("Step 2 failed: %w", err)
 	}
 
 	client2Amount := res1.Amount - client1Amount
@@ -167,7 +167,6 @@ func TestTripleEndpointFixedUTXO(t *testing.T) {
 	fmt.Printf("Length: %d bytes\n", len(spendTxUnsignedHex)/2)
 	fmt.Println("---")
 
-	// Step 3: Client1 signature (already done in BuildTripleFeePoolSpendTX)
 	fmt.Println("\n" + strings.Repeat("=", 60))
 	fmt.Println("STEP 3: Client1 Sign (from BuildTripleFeePoolSpendTX)")
 	fmt.Println(strings.Repeat("=", 60))
@@ -175,33 +174,29 @@ func TestTripleEndpointFixedUTXO(t *testing.T) {
 	client1SigHex := fmt.Sprintf("%x", *client1SignBytes)
 	fmt.Printf("Client1 Signature: %s\n", client1SigHex)
 
-	// Verify client1 signature (if expected output exists)
 	if expected, exists := config.ExpectedOutputs["client1_signature"]; exists && client1SigHex != expected {
-		t.Errorf("Client1 signature mismatch.\nExpected: %s\nGot:      %s", expected, client1SigHex)
+		mismatches = append(mismatches, fmt.Sprintf("Client1 signature mismatch.\nExpected: %s\nGot:      %s", expected, client1SigHex))
 	}
 
-	// Step 4: Server signature
 	fmt.Println("\n" + strings.Repeat("=", 60))
 	fmt.Println("STEP 4: Server Sign")
 	fmt.Println(strings.Repeat("=", 60))
 
 	serverSignBytes, err := te.SpendTXTripleFeePoolBSign(bTx, res1.Amount, serverPriv.PubKey(), client1Priv.PubKey(), client2Priv)
 	if err != nil {
-		t.Fatalf("Step 4 failed: %v", err)
+		return fmt.Errorf("Step 4 failed: %w", err)
 	}
 
 	serverSigHex := fmt.Sprintf("%x", *serverSignBytes)
 	fmt.Printf("Server Signature: %s\n", serverSigHex)
 
-	// Verify server signature (if expected output exists)
 	if expected, exists := config.ExpectedOutputs["server_signature"]; exists && serverSigHex != expected {
-		t.Errorf("Server signature mismatch.\nExpected: %s\nGot:      %s", expected, serverSigHex)
+		mismatches = append(mismatches, fmt.Sprintf("Server signature mismatch.\nExpected: %s\nGot:      %s", expected, serverSigHex))
 	}
 
-	// Merge signatures for complete spend transaction
 	bTx, err = te.MergeTripleFeePoolSigForSpendTx(bTx.String(), client1SignBytes, serverSignBytes)
 	if err != nil {
-		t.Fatalf("Failed to merge signatures: %v", err)
+		return fmt.Errorf("Failed to merge signatures: %w", err)
 	}
 
 	completeSpendTxHex := bTx.String()
@@ -211,12 +206,10 @@ func TestTripleEndpointFixedUTXO(t *testing.T) {
 	fmt.Printf("Length: %d bytes\n", len(completeSpendTxHex)/2)
 	fmt.Println("---")
 
-	// Verify complete spend transaction (if expected output exists)
 	if expected, exists := config.ExpectedOutputs["complete_spend_tx"]; exists && completeSpendTxHex != expected {
-		t.Errorf("Complete spend transaction mismatch.\nExpected: %s\nGot:      %s", expected, completeSpendTxHex)
+		mismatches = append(mismatches, fmt.Sprintf("Complete spend transaction mismatch.\nExpected: %s\nGot:      %s", expected, completeSpendTxHex))
 	}
 
-	// Step 5: Client1 update signature
 	fmt.Println("\n" + strings.Repeat("=", 60))
 	fmt.Println("STEP 5: Client1 Update Sign (Adjust Client1-Client2 Distribution)")
 	fmt.Println(strings.Repeat("=", 60))
@@ -224,12 +217,12 @@ func TestTripleEndpointFixedUTXO(t *testing.T) {
 	updatedTx, err := te.TripleFeePoolLoadTx(bTx.String(), nil, config.Sequence2, config.NewClient1Amount,
 		serverPriv.PubKey(), client1Priv.PubKey(), client2Priv.PubKey(), res1.Amount)
 	if err != nil {
-		t.Fatalf("Step 5 load tx failed: %v", err)
+		return fmt.Errorf("Step 5 load tx failed: %w", err)
 	}
 
 	client1UpdateSignBytes, err := te.ClientATripleFeePoolSpendTXUpdateSign(updatedTx, serverPriv.PubKey(), client1Priv, client2Priv.PubKey())
 	if err != nil {
-		t.Fatalf("Step 5 client1 sign failed: %v", err)
+		return fmt.Errorf("Step 5 client1 sign failed: %w", err)
 	}
 
 	newClient2Amount := res1.Amount - config.NewClient1Amount
@@ -248,33 +241,29 @@ func TestTripleEndpointFixedUTXO(t *testing.T) {
 	fmt.Printf("Length: %d bytes\n", len(updatedTxUnsignedHex)/2)
 	fmt.Println("---")
 
-	// Verify client1 update signature (if expected output exists)
 	if expected, exists := config.ExpectedOutputs["client1_update_signature"]; exists && client1UpdateSigHex != expected {
-		t.Errorf("Client1 update signature mismatch.\nExpected: %s\nGot:      %s", expected, client1UpdateSigHex)
+		mismatches = append(mismatches, fmt.Sprintf("Client1 update signature mismatch.\nExpected: %s\nGot:      %s", expected, client1UpdateSigHex))
 	}
 
-	// Step 6: Client2 agrees and signs
 	fmt.Println("\n" + strings.Repeat("=", 60))
 	fmt.Println("STEP 6: Client2 Agrees and Signs (Normal Negotiation)")
 	fmt.Println(strings.Repeat("=", 60))
 
 	client2UpdateSignBytes, err := te.ClientBTripleFeePoolSpendTXUpdateSign(updatedTx, serverPriv.PubKey(), client1Priv.PubKey(), client2Priv)
 	if err != nil {
-		t.Fatalf("Step 6 failed: %v", err)
+		return fmt.Errorf("Step 6 failed: %w", err)
 	}
 
 	client2UpdateSigHex := fmt.Sprintf("%x", *client2UpdateSignBytes)
 	fmt.Printf("Client2 Update Signature: %s\n", client2UpdateSigHex)
 
-	// Verify client2 update signature (if expected output exists)
 	if expected, exists := config.ExpectedOutputs["client2_update_signature"]; exists && client2UpdateSigHex != expected {
-		t.Errorf("Client2 update signature mismatch.\nExpected: %s\nGot:      %s", expected, client2UpdateSigHex)
+		mismatches = append(mismatches, fmt.Sprintf("Client2 update signature mismatch.\nExpected: %s\nGot:      %s", expected, client2UpdateSigHex))
 	}
 
-	// Merge updated signatures
 	updatedTx, err = te.MergeTripleFeePoolSigForSpendTx(updatedTx.String(), client1UpdateSignBytes, client2UpdateSignBytes)
 	if err != nil {
-		t.Fatalf("Failed to merge update signatures: %v", err)
+		return fmt.Errorf("Failed to merge update signatures: %w", err)
 	}
 
 	completeUpdatedTxHex := updatedTx.String()
@@ -284,12 +273,10 @@ func TestTripleEndpointFixedUTXO(t *testing.T) {
 	fmt.Printf("Length: %d bytes\n", len(completeUpdatedTxHex)/2)
 	fmt.Println("---")
 
-	// Verify complete updated transaction (if expected output exists)
 	if expected, exists := config.ExpectedOutputs["complete_updated_tx"]; exists && completeUpdatedTxHex != expected {
-		t.Errorf("Complete updated transaction mismatch.\nExpected: %s\nGot:      %s", expected, completeUpdatedTxHex)
+		mismatches = append(mismatches, fmt.Sprintf("Complete updated transaction mismatch.\nExpected: %s\nGot:      %s", expected, completeUpdatedTxHex))
 	}
 
-	// Final step: Close fee pool
 	fmt.Println("\n" + strings.Repeat("=", 60))
 	fmt.Println("FINAL STEP: Close Fee Pool (locktime=0xffffffff, sequence=0xffffffff)")
 	fmt.Println(strings.Repeat("=", 60))
@@ -297,25 +284,22 @@ func TestTripleEndpointFixedUTXO(t *testing.T) {
 	finalTx, err := te.TripleFeePoolLoadTx(bTx.String(), &config.FinalLocktime, config.FinalSequence, config.NewClient1Amount,
 		serverPriv.PubKey(), client1Priv.PubKey(), client2Priv.PubKey(), res1.Amount)
 	if err != nil {
-		t.Fatalf("Final step load tx failed: %v", err)
+		return fmt.Errorf("Final step load tx failed: %w", err)
 	}
 
-	// Client1 final signature
 	client1FinalSignBytes, err := te.ClientATripleFeePoolSpendTXUpdateSign(finalTx, serverPriv.PubKey(), client1Priv, client2Priv.PubKey())
 	if err != nil {
-		t.Fatalf("Final client1 sign failed: %v", err)
+		return fmt.Errorf("Final client1 sign failed: %w", err)
 	}
 
-	// Server final signature
 	serverFinalSignBytes, err := te.SpendTXTripleFeePoolBSign(finalTx, res1.Amount, serverPriv.PubKey(), client1Priv.PubKey(), client2Priv)
 	if err != nil {
-		t.Fatalf("Final server sign failed: %v", err)
+		return fmt.Errorf("Final server sign failed: %w", err)
 	}
 
-	// Merge final signatures
 	finalTx, err = te.MergeTripleFeePoolSigForSpendTx(finalTx.String(), client1FinalSignBytes, serverFinalSignBytes)
 	if err != nil {
-		t.Fatalf("Failed to merge final signatures: %v", err)
+		return fmt.Errorf("Failed to merge final signatures: %w", err)
 	}
 
 	client1FinalSigHex := fmt.Sprintf("%x", *client1FinalSignBytes)
@@ -332,20 +316,18 @@ func TestTripleEndpointFixedUTXO(t *testing.T) {
 	fmt.Printf("Length: %d bytes\n", len(finalClosedTxHex)/2)
 	fmt.Println("---")
 
-	// Verify final signatures and transaction (if expected outputs exist)
 	if expected, exists := config.ExpectedOutputs["client1_final_signature"]; exists && client1FinalSigHex != expected {
-		t.Errorf("Client1 final signature mismatch.\nExpected: %s\nGot:      %s", expected, client1FinalSigHex)
+		mismatches = append(mismatches, fmt.Sprintf("Client1 final signature mismatch.\nExpected: %s\nGot:      %s", expected, client1FinalSigHex))
 	}
 
 	if expected, exists := config.ExpectedOutputs["server_final_signature"]; exists && serverFinalSigHex != expected {
-		t.Errorf("Server final signature mismatch.\nExpected: %s\nGot:      %s", expected, serverFinalSigHex)
+		mismatches = append(mismatches, fmt.Sprintf("Server final signature mismatch.\nExpected: %s\nGot:      %s", expected, serverFinalSigHex))
 	}
 
 	if expected, exists := config.ExpectedOutputs["final_closed_tx"]; exists && finalClosedTxHex != expected {
-		t.Errorf("Final closed transaction mismatch.\nExpected: %s\nGot:      %s", expected, finalClosedTxHex)
+		mismatches = append(mismatches, fmt.Sprintf("Final closed transaction mismatch.\nExpected: %s\nGot:      %s", expected, finalClosedTxHex))
 	}
 
-	// Summary
 	fmt.Println("\n" + strings.Repeat("=", 60))
 	fmt.Println("SUMMARY - TRANSACTION SEQUENCE")
 	fmt.Println(strings.Repeat("=", 60))
@@ -366,15 +348,23 @@ func TestTripleEndpointFixedUTXO(t *testing.T) {
 	fmt.Println("TESTNET EXPLORER:")
 	fmt.Println("https://test.whatsonchain.com/")
 
+	if len(mismatches) > 0 {
+		return fmt.Errorf("mismatches detected:\n%s", strings.Join(mismatches, "\n"))
+	}
+
 	fmt.Println("\n✅ All transaction outputs match expected values from successful test run!")
+	return nil
+}
+
+func TestTripleEndpointFixedUTXO(t *testing.T) {
+	if err := runTripleEndpointFixedUTXO(); err != nil {
+		t.Fatalf("%v", err)
+	}
 }
 
 func main() {
-	// Run the test
-	t := &testing.T{}
-	TestTripleEndpointFixedUTXO(t)
-	if t.Failed() {
-		log.Fatal("Test failed")
+	if err := runTripleEndpointFixedUTXO(); err != nil {
+		log.Fatal(err)
 	}
 	fmt.Println("Test passed successfully!")
 }

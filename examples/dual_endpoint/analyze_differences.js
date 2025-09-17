@@ -200,7 +200,7 @@ async function main() {
     const goResults = extractGoResults(goResult.stdout);
     
     console.log('2️⃣ 运行 TypeScript 主程序...');
-    const tsResult = await runCommand('bun', ['examples/dual_endpoint/ts_dual_endpoint_main.ts'], rootDir);
+    const tsResult = await runCommand('npx', ['tsx', 'examples/dual_endpoint/ts_dual_endpoint_main.ts'], rootDir);
     const tsResults = extractTypescriptResults(tsResult.stdout);
     
     console.log('3️⃣ 分析结果...');

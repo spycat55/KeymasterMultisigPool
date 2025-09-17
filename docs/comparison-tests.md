@@ -66,7 +66,7 @@ B) 差异定位辅助（结构化 diff）
   - 当 compare.go 失败时，用本脚本进行“字段级”定位（脚本不同、金额不同、锁定时间不同等）
 - 运行方式：
   - node examples/dual_endpoint/analyze_differences.js
-  - 或根据脚本中 spawn 的命令要求，确保 bun/go 环境可执行
+  - 或根据脚本中 spawn 的命令要求，确保 Node.js（可运行 `npx tsx`）与 Go 环境可执行
 
 C) TypeScript 单测的“对比预期”断言
 - 位置：tests/dual_endpoint/dual_endpoint.test.ts
@@ -212,3 +212,9 @@ D) 运行与脚本
 
 - 双签 TS 主程序（用于差异分析脚本调用）
   - examples/dual_endpoint/ts_dual_endpoint_main.ts
+
+5) 签名验证一致性（新增）
+- 新增 TS 单测：`tests/dual_endpoint/verify_signatures.test.ts`、`tests/triple_endpoint/verify_signatures.test.ts`
+  - 正向：使用现有流程生成 client/server 签名，分别调用 `serverVerifyClient*` 与 `clientVerifyServer*` 断言为 true
+  - 负向：篡改 sighash 标志，或修改 locktime/sequence，断言为 false
+- 建议 Go 侧补充对等的验证单测（待补），确保 Go/TS 验证结果一致

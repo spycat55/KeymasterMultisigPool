@@ -39,3 +39,11 @@ export {
 export {
   serverDualFeePoolSpendTXUpdateSign,
 } from './5server_sign_update';
+
+// Verification helpers (non-breaking additions)
+export {
+  serverVerifyClientSpendSig,
+  clientVerifyServerSpendSig,
+  serverVerifyClientUpdateSig,
+  clientVerifyServerUpdateSig,
+} from './6verify';
